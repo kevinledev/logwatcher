@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, StreamingHttpResponse
 from .models import Event
 import random
 import threading
@@ -180,3 +180,28 @@ def get_historical_latency_data(request):
             } for entry in aggregated_data
         ]
     })
+
+
+def event_stream(request):
+    def stream():
+        while True:
+            if not is_generating:
+                yield "data: {}\n\n"
+                time.sleep(1)
+                continue
+                
+            event = generate_single_event()
+            data = {
+                'timestamp': event.timestamp.timestamp() * 1000,
+                'latency': event.duration_ms
+            }
+            yield f"data: {json.dumps(data)}\n\n"
+            time.sleep(5)  # Keep your existing 5s interval
+    
+    response = StreamingHttpResponse(
+        streaming_content=stream(),
+        content_type='text/event-stream'
+    )
+    response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'
+    return response
