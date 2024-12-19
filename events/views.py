@@ -75,14 +75,7 @@ def generate_single_event():
 def event_list(request):
     events = Event.objects.all().order_by("-timestamp")
 
-    # Calculate metrics
-    total_requests = events.count()
-    error_requests = events.filter(status_code__gte=400).count()
-    error_rate = (error_requests / total_requests * 100) if total_requests > 0 else 0
-    average_duration = events.aggregate(Avg("duration_ms"))["duration_ms__avg"] or 0
-    min_duration = events.aggregate(Min("duration_ms"))["duration_ms__min"] or 0
-    max_duration = events.aggregate(Max("duration_ms"))["duration_ms__max"] or 0
-    requests_per_minute = total_requests / (5 / 60)  # Assuming 5 minutes of data
+
 
     return render(
         request,
@@ -90,13 +83,6 @@ def event_list(request):
         {
             "events": events,
             "is_generating": is_generating,
-            "total_requests": total_requests,
-            "error_requests": error_requests,
-            "error_rate": error_rate,
-            "average_duration": average_duration,
-            "min_duration": min_duration,
-            "max_duration": max_duration,
-            "requests_per_minute": requests_per_minute,
         },
     )
 

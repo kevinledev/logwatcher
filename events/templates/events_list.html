@@ -47,60 +47,6 @@
       {% if is_generating %}Stop Generation{% else %}Start Generation{% endif %}
     </button>
 
-    <!-- Main Event Table -->
-
-    <!-- Time Taken for API Calls -->
-    <h2>API Call Duration</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Average Duration (ms)</th>
-          <th>Min Duration (ms)</th>
-          <th>Max Duration (ms)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>{{ average_duration }}</td>
-          <td>{{ min_duration }}</td>
-          <td>{{ max_duration }}</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <!-- Error Rate -->
-    <h2>Error Rate</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Total Requests</th>
-          <th>Error Requests</th>
-          <th>Error Rate (%)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>{{ total_requests }}</td>
-          <td>{{ error_requests }}</td>
-          <td>{{ error_rate }}</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <!-- Throughput per Unit of Time -->
-    <h2>Throughput</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Requests per Minute</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>{{ requests_per_minute }}</td>
-        </tr>
-      </tbody>
-    </table>
     <!-- Event Table -->
     <table>
       <thead>
