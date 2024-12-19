@@ -2,6 +2,9 @@
 <html>
   <head>
     <title>Event Log</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming"></script>
     <style>
       table {
         width: 100%;
@@ -47,6 +50,25 @@
       {% if is_generating %}Stop Generation{% else %}Start Generation{% endif %}
     </button>
 
+    <div style="width: 800px; height: 400px">
+      <canvas id="latencyChart"></canvas>
+    </div>
+
+    <!-- Add time range controls -->
+    <select id="timeRange">
+      <option value="5">Last 5 minutes</option>
+      <option value="15">Last 15 minutes</option>
+      <option value="60">Last hour</option>
+      <option value="360">Last 6 hours</option>
+    </select>
+
+    <select id="interval">
+      <option value="10">10 seconds</option>
+      <option value="30">30 seconds</option>
+      <option value="60">1 minute</option>
+      <option value="300">5 minutes</option>
+    </select>
+
     <!-- Event Table -->
     <table>
       <thead>
@@ -80,39 +102,128 @@
       </tbody>
     </table>
 
+    <!-- Generation controls -->
     <script>
+      // Generation state and controls
       let isGenerating = {{ is_generating|lower }};
 
-      function toggleGeneration() {
-          const btn = document.getElementById('generateBtn');
-
-          if (!isGenerating) {
-              fetch('/start/')
-                  .then(response => response.json())
-                  .then(data => {
-                      isGenerating = true;
-                      btn.textContent = 'Stop Generation';
-                      btn.classList.remove('not-generating');
-                      btn.classList.add('generating');
-                  });
-          } else {
-              fetch('/stop/')
-                  .then(response => response.json())
-                  .then(data => {
-                      isGenerating = false;
-                      btn.textContent = 'Start Generation';
-                      btn.classList.remove('generating');
-                      btn.classList.add('not-generating');
-                  });
+      async function toggleGeneration() {
+        const btn = document.getElementById('generateBtn');
+        const endpoint = isGenerating ? '/stop/' : '/start/';
+        
+        try {
+          await fetch(endpoint);
+          isGenerating = !isGenerating;
+          
+          btn.textContent = isGenerating ? 'Stop Generation' : 'Start Generation';
+          btn.classList.toggle('generating');
+          btn.classList.toggle('not-generating');
+          
+          if (isGenerating) {
+            latencyChart.update();
           }
+        } catch (error) {
+          console.error('Error toggling generation:', error);
+        }
+      }
+    </script>
+
+    <!-- Chart configuration and data handling -->
+    <script>
+      // Constants
+      const REFRESH_RATES = {
+        '10': 2000,
+        '30': 5000,
+        '60': 10000
+      };
+
+      // Chart setup and configuration
+      const ctx = document.getElementById('latencyChart').getContext('2d');
+      const latencyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: 'Average Latency (ms)',
+            data: [],
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              type: 'realtime',
+              realtime: {
+                duration: 300000,
+                refresh: 5000,
+                delay: 0,
+                onRefresh: handleChartRefresh
+              }
+            },
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    </script>
+
+    <!-- Data fetching and updates -->
+    <script>
+      async function handleChartRefresh(chart) {
+        if (!isGenerating) return;
+
+        const interval = document.getElementById('interval').value;
+        const timeRange = document.getElementById('timeRange').value;
+        
+        try {
+          const response = await fetch(`/api/latency-data/?interval=${interval}&range=${timeRange}`);
+          const data = await response.json();
+          
+          chart.data.datasets[0].data.push({
+            x: Date.now(),
+            y: data.latest_latency
+          });
+        } catch (error) {
+          console.error('Error fetching latest data:', error);
+        }
       }
 
-      // Refresh the page every 5 seconds to show new events
-      setInterval(() => {
-          if (isGenerating) {
-              location.reload();
-          }
-      }, 5000);
+      async function loadHistoricalData() {
+        const interval = document.getElementById('interval').value;
+        const timeRange = document.getElementById('timeRange').value;
+        
+        try {
+          const response = await fetch(`/api/historical-latency-data/?interval=${interval}&range=${timeRange}`);
+          const data = await response.json();
+          
+          latencyChart.data.datasets[0].data = data.data;
+          latencyChart.update('none');
+        } catch (error) {
+          console.error('Error loading historical data:', error);
+        }
+      }
+    </script>
+
+    <!-- Event listeners -->
+    <script>
+      document.getElementById('timeRange').addEventListener('change', (e) => {
+        const rangeMinutes = parseInt(e.target.value);
+        latencyChart.options.scales.x.realtime.duration = rangeMinutes * 60 * 1000;
+        loadHistoricalData();
+      });
+
+      document.getElementById('interval').addEventListener('change', (e) => {
+        const refreshRate = REFRESH_RATES[e.target.value];
+        latencyChart.options.scales.x.realtime.refresh = refreshRate;
+        loadHistoricalData();
+      });
+
+      // Initialize
+      loadHistoricalData();
     </script>
   </body>
 </html>

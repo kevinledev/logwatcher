@@ -6,6 +6,13 @@ import threading
 import time
 from django.db.models import Avg, Min, Max
 import json
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models.functions import (
+    TruncMinute, ExtractMinute, ExtractSecond, ExtractHour
+)
+from django.db.models import IntegerField
+from django.db.models.expressions import ExpressionWrapper
 
 # Global flag to control event generation
 is_generating = False
@@ -74,9 +81,7 @@ def generate_single_event():
 
 def event_list(request):
     events = Event.objects.all().order_by("-timestamp")
-
-
-
+    
     return render(
         request,
         "events_list.html",
@@ -107,3 +112,71 @@ def stop_generation(request):
     global is_generating
     is_generating = False
     return JsonResponse({"status": "stopped"})
+
+
+def get_latency_data(request):
+    window_seconds = int(request.GET.get('interval', '60'))
+    
+    now = timezone.now()
+    start_time = now - timedelta(seconds=window_seconds)
+    
+    latest_data = Event.objects.filter(
+        timestamp__gte=start_time
+    ).aggregate(avg_latency=Avg('duration_ms'))
+    
+    return JsonResponse({
+        'latest_latency': round(latest_data['avg_latency'], 2) if latest_data['avg_latency'] else 0
+    })
+
+
+def get_historical_latency_data(request):
+    interval_seconds = int(request.GET.get("interval", "60"))
+    range_minutes = int(request.GET.get('range', '15'))  # Now expecting direct minutes
+    
+    now = timezone.now()
+    start_time = now - timedelta(minutes=range_minutes)
+    
+    events = Event.objects.filter(timestamp__gte=start_time).order_by('timestamp')
+    
+    if interval_seconds < 60:  # Sub-minute intervals (10s, 30s)
+        aggregated_data = (
+            events.annotate(
+                bucket=ExpressionWrapper(
+                    (ExtractHour('timestamp') * 3600 + 
+                     ExtractMinute('timestamp') * 60 + 
+                     ExtractSecond('timestamp')) / interval_seconds,
+                    output_field=IntegerField()
+                )
+            )
+            .values('bucket')
+            .annotate(
+                avg_latency=Avg('duration_ms'),
+                timestamp=Min('timestamp')
+            )
+            .order_by('bucket')
+        )
+    else:  # Minute-based intervals (1m, 5m)
+        minutes_fraction = interval_seconds // 60
+        aggregated_data = (
+            events.annotate(
+                bucket=ExpressionWrapper(
+                    (ExtractHour('timestamp') * 60 + ExtractMinute('timestamp')) / minutes_fraction,
+                    output_field=IntegerField()
+                )
+            )
+            .values('bucket')
+            .annotate(
+                avg_latency=Avg('duration_ms'),
+                timestamp=Min('timestamp')
+            )
+            .order_by('bucket')
+        )
+    
+    return JsonResponse({
+        'data': [
+            {
+                'x': entry['timestamp'].timestamp() * 1000,
+                'y': round(entry['avg_latency'], 2) if entry['avg_latency'] else 0
+            } for entry in aggregated_data
+        ]
+    })
