@@ -1,0 +1,16 @@
+<table>
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Method</th>
+            <th>Source</th>
+            <th>Status</th>
+            <th>Duration</th>
+            <th>Details</th>
+        </tr>
+    </thead>
+    <tbody hx-get="{% url 'event_rows' %}"
+           hx-trigger="load"
+           hx-swap="innerHTML">
+    </tbody>
+</table> 

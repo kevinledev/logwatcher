@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>Event Log</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming"></script>
@@ -37,6 +38,22 @@
       .not-generating {
         background-color: #28a745;
       }
+      #pagination-row {
+        background-color: #f8f9fa;
+      }
+
+      #pagination-row button {
+        margin: 5px;
+        padding: 5px 10px;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        background-color: white;
+        cursor: pointer;
+      }
+
+      #pagination-row button:hover {
+        background-color: #e9ecef;
+      }
     </style>
   </head>
   <body>
@@ -70,37 +87,7 @@
     </select>
 
     <!-- Event Table -->
-    <table>
-      <thead>
-        <tr>
-          <th>Timestamp</th>
-          <th>Method</th>
-          <th>Source</th>
-          <th>Status</th>
-          <th>Duration</th>
-          <th>Details</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for event in events %}
-        <tr>
-          <td>{{ event.timestamp|date:"Y-m-d H:i:s" }}</td>
-          <td>{{ event.method }}</td>
-          <td>{{ event.source }}</td>
-          <td
-            class="{% if event.status_code >= 400 %}error{% else %}success{% endif %}"
-          >
-            {{ event.status_code }}
-          </td>
-          <td>{{ event.duration_ms }}ms</td>
-          <td>
-            {% if event.status_code >= 400 %} {{ event.metadata.error_message }}
-            {% else %} {{ event.message }} {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    {% include "event_table.html" %}
 
     <!-- Generation controls -->
     <script>
@@ -110,15 +97,15 @@
       async function toggleGeneration() {
         const btn = document.getElementById('generateBtn');
         const endpoint = isGenerating ? '/stop/' : '/start/';
-        
+
         try {
           await fetch(endpoint);
           isGenerating = !isGenerating;
-          
+
           btn.textContent = isGenerating ? 'Stop Generation' : 'Start Generation';
           btn.classList.toggle('generating');
           btn.classList.toggle('not-generating');
-          
+
           if (!isGenerating) {
             latencyChart.update();
           }
@@ -132,57 +119,95 @@
     <script>
       // Constants
       const REFRESH_RATES = {
-        '10': 2000,
-        '30': 5000,
-        '60': 10000
+        10: 2000,
+        30: 5000,
+        60: 10000,
       };
 
       // Chart setup and configuration
-      const ctx = document.getElementById('latencyChart').getContext('2d');
+      const ctx = document.getElementById("latencyChart").getContext("2d");
       const latencyChart = new Chart(ctx, {
-        type: 'line',
+        type: "line",
         data: {
-          datasets: [{
-            label: 'Average Latency (ms)',
-            data: [],
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            fill: true
-          }]
+          datasets: [
+            {
+              label: "Average Latency (ms)",
+              data: [],
+              borderColor: "rgb(75, 192, 192)",
+              backgroundColor: "rgba(75, 192, 192, 0.2)",
+              fill: true,
+            },
+          ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           scales: {
             x: {
-              type: 'realtime',
+              type: "realtime",
               realtime: {
                 duration: 300000,
                 delay: 0,
                 refresh: 1000,
-                onRefresh: () => {}
-              }
+                onRefresh: () => {},
+              },
             },
             y: {
-              beginAtZero: true
-            }
-          }
-        }
+              beginAtZero: true,
+            },
+          },
+        },
       });
 
       // Add SSE listener (place this after chart initialization)
-      const eventSource = new EventSource('/api/events-stream/');
-      eventSource.onmessage = function(event) {
+      const eventSource = new EventSource("/api/events-stream/");
+      eventSource.onmessage = function (event) {
         if (!isGenerating) return;
-        
+
         const data = JSON.parse(event.data);
-        if (!data.timestamp) return;  // Skip empty updates
-        
+        if (!data.timestamp) return; // Skip empty updates
+
+        // Update chart
         latencyChart.data.datasets[0].data.push({
           x: data.timestamp,
-          y: data.latency
+          y: data.latency,
         });
-        latencyChart.update('none');
+        latencyChart.update();
+
+        // Update table - prepend new row and remove last if needed
+        const tbody = document.querySelector("table tbody");
+        const firstRow = tbody.querySelector("tr");
+
+        // Create new row from event data
+        const newRow = document.createElement("tr");
+        newRow.innerHTML = `
+          <td>${data.event.timestamp}</td>
+          <td>${data.event.method}</td>
+          <td>${data.event.source}</td>
+          <td class="${data.event.status_code >= 400 ? "error" : "success"}">${
+          data.event.status_code
+        }</td>
+          <td>${data.event.duration_ms}ms</td>
+          <td>${
+            data.event.status_code >= 400
+              ? data.event.metadata.error_message
+              : "Success"
+          }</td>
+        `;
+
+        // Insert at top
+        if (firstRow) {
+          tbody.insertBefore(newRow, firstRow);
+        } else {
+          tbody.appendChild(newRow);
+        }
+
+        // Keep pagination count correct
+        const rows = tbody.querySelectorAll("tr:not(#pagination-row)");
+        if (rows.length > 10) {
+          // Assuming 10 items per page
+          rows[rows.length - 1].remove();
+        }
       };
     </script>
 
@@ -191,47 +216,52 @@
       async function handleChartRefresh(chart) {
         if (!isGenerating) return;
 
-        const interval = document.getElementById('interval').value;
-        const timeRange = document.getElementById('timeRange').value;
-        
+        const interval = document.getElementById("interval").value;
+        const timeRange = document.getElementById("timeRange").value;
+
         try {
-          const response = await fetch(`/api/latency-data/?interval=${interval}&range=${timeRange}`);
+          const response = await fetch(
+            `/api/latency-data/?interval=${interval}&range=${timeRange}`
+          );
           const data = await response.json();
-          
+
           chart.data.datasets[0].data.push({
             x: Date.now(),
-            y: data.latest_latency
+            y: data.latest_latency,
           });
         } catch (error) {
-          console.error('Error fetching latest data:', error);
+          console.error("Error fetching latest data:", error);
         }
       }
 
       async function loadHistoricalData() {
-        const interval = document.getElementById('interval').value;
-        const timeRange = document.getElementById('timeRange').value;
-        
-        try {
-          const response = await fetch(`/api/historical-latency-data/?interval=${interval}&range=${timeRange}`);
-          const data = await response.json();
-          
-          latencyChart.data.datasets[0].data = data.data;
-          latencyChart.update('none');
-        } catch (error) {
-          console.error('Error loading historical data:', error);
-        }
+        const intervalSeconds = document.getElementById("interval").value;
+        const rangeMinutes = document.getElementById("timeRange").value;
+
+        fetch(
+          `/api/historical-latency-data/?interval=${intervalSeconds}&range=${rangeMinutes}`
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            latencyChart.data.datasets[0].data = data.data;
+            latencyChart.update();
+          })
+          .catch((error) => {
+            console.error("Error loading historical data:", error);
+          });
       }
     </script>
 
     <!-- Event listeners -->
     <script>
-      document.getElementById('timeRange').addEventListener('change', (e) => {
+      document.getElementById("timeRange").addEventListener("change", (e) => {
         const rangeMinutes = parseInt(e.target.value);
-        latencyChart.options.scales.x.realtime.duration = rangeMinutes * 60 * 1000;
+        latencyChart.options.scales.x.realtime.duration =
+          rangeMinutes * 60 * 1000;
         loadHistoricalData();
       });
 
-      document.getElementById('interval').addEventListener('change', (e) => {
+      document.getElementById("interval").addEventListener("change", (e) => {
         const refreshRate = REFRESH_RATES[e.target.value];
         latencyChart.options.scales.x.realtime.refresh = refreshRate;
         loadHistoricalData();

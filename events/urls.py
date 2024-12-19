@@ -8,4 +8,5 @@ urlpatterns = [
     path('api/latency-data/', views.get_latency_data, name='latency_data'),
     path('api/historical-latency-data/', views.get_historical_latency_data, name='historical_latency_data'),
     path('api/events-stream/', views.event_stream, name='event_stream'),
+    path('api/event-rows/', views.event_rows, name='event_rows'),
 ] 

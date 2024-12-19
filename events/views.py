@@ -13,6 +13,7 @@ from django.db.models.functions import (
 )
 from django.db.models import IntegerField
 from django.db.models.expressions import ExpressionWrapper
+from django.core.paginator import Paginator
 
 # Global flag to control event generation
 is_generating = False
@@ -193,10 +194,18 @@ def event_stream(request):
             event = generate_single_event()
             data = {
                 'timestamp': event.timestamp.timestamp() * 1000,
-                'latency': event.duration_ms
+                'latency': event.duration_ms,
+                'event': {
+                    'timestamp': event.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                    'method': event.method,
+                    'source': event.source,
+                    'status_code': event.status_code,
+                    'duration_ms': event.duration_ms,
+                    'metadata': event.metadata
+                }
             }
             yield f"data: {json.dumps(data)}\n\n"
-            time.sleep(5)  # Keep your existing 5s interval
+            time.sleep(5)
     
     response = StreamingHttpResponse(
         streaming_content=stream(),
@@ -205,3 +214,11 @@ def event_stream(request):
     response['Cache-Control'] = 'no-cache'
     response['X-Accel-Buffering'] = 'no'
     return response
+
+
+def event_rows(request):
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(Event.objects.all().order_by("-timestamp"), 10)  # 10 items per page
+    events = paginator.get_page(page_number)
+    
+    return render(request, 'event_rows.html', {'events': events})

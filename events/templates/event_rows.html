@@ -1,0 +1,44 @@
+{% for event in events %}
+<tr>
+  <td>{{ event.timestamp }}</td>
+  <td>{{ event.method }}</td>
+  <td>{{ event.source }}</td>
+  <td
+    class="{% if event.status_code >= 400 %}error{% else %}success{% endif %}"
+  >
+    {{ event.status_code }}
+  </td>
+  <td>{{ event.duration_ms }}ms</td>
+  <td>
+    {% if event.status_code >= 400 %} {{ event.metadata.error_message }} {% else
+    %} Success {% endif %}
+  </td>
+</tr>
+{% endfor %}
+
+<!-- Pagination controls -->
+<tr id="pagination-row">
+  <td colspan="6" style="text-align: center">
+    {% if events.has_previous %}
+    <button
+      hx-get="{% url 'event_rows' %}?page={{ events.previous_page_number }}"
+      hx-target="tbody"
+      class="button"
+    >
+      Previous
+    </button>
+    {% endif %}
+
+    <span>Page {{ events.number }} of {{ events.paginator.num_pages }}</span>
+
+    {% if events.has_next %}
+    <button
+      hx-get="{% url 'event_rows' %}?page={{ events.next_page_number }}"
+      hx-target="tbody"
+      class="button"
+    >
+      Next
+    </button>
+    {% endif %}
+  </td>
+</tr>
