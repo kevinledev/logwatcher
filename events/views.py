@@ -9,15 +9,19 @@ import json
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models.functions import (
-    TruncMinute, ExtractMinute, ExtractSecond, ExtractHour
+    ExtractMinute, ExtractSecond, ExtractHour
 )
 from django.db.models import IntegerField
 from django.db.models.expressions import ExpressionWrapper
 from django.core.paginator import Paginator
+from queue import Queue
 
 # Global flag to control event generation
 is_generating = False
 generator_thread = None
+
+# At the top of the file
+connected_clients = set()
 
 def monitor_dashboard(request):
     """Main view that renders the monitoring dashboard with events list and real-time chart"""
@@ -68,8 +72,7 @@ def generate_event():
         metadata={},
     )
 
-    error_details = None  # Initialize with a default value
-
+    error_details = None
     if event.status_code >= 400:
         if event.status_code == 404:
             error_details = f"The requested resource at {event.source} does not exist"
@@ -85,6 +88,25 @@ def generate_event():
         }
 
     event.save()
+
+    # Prepare data for clients
+    data = json.dumps({
+        'timestamp': event.timestamp.timestamp() * 1000,
+        'latency': event.duration_ms,
+        'event': {
+            'timestamp': event.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            'method': event.method,
+            'source': event.source,
+            'status_code': event.status_code,
+            'duration_ms': event.duration_ms,
+            'metadata': event.metadata
+        }
+    })
+    
+    # Push to all connected clients
+    for queue in connected_clients:
+        queue.put(data)
+    
     return event
 
 
@@ -92,7 +114,7 @@ def generate_events():
     global is_generating
     while is_generating:
         generate_event()
-        time.sleep(5)  # Generate event every 5 seconds
+        time.sleep(5)
 
 
 def start_generation(request):
@@ -179,35 +201,22 @@ def get_historical_latency_data(request):
 
 
 def event_stream(request):
+    queue = Queue()
+    connected_clients.add(queue)
+    
     def stream():
-        while True:
-            if not is_generating:
-                yield "data: {}\n\n"
-                time.sleep(1)
-                continue
-                
-            event = generate_event()
-            data = {
-                'timestamp': event.timestamp.timestamp() * 1000,
-                'latency': event.duration_ms,
-                'event': {
-                    'timestamp': event.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                    'method': event.method,
-                    'source': event.source,
-                    'status_code': event.status_code,
-                    'duration_ms': event.duration_ms,
-                    'metadata': event.metadata
-                }
-            }
-            yield f"data: {json.dumps(data)}\n\n"
-            time.sleep(5)
+        try:
+            while True:
+                data = queue.get()  # This blocks until data is available
+                yield f"data: {data}\n\n"
+        finally:
+            connected_clients.remove(queue)
     
     response = StreamingHttpResponse(
         streaming_content=stream(),
         content_type='text/event-stream'
     )
     response['Cache-Control'] = 'no-cache'
-    response['X-Accel-Buffering'] = 'no'
     return response
 
 
