@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import JsonResponse, StreamingHttpResponse
+from django.http import JsonResponse
 from .models import Event
 import random
 import threading
@@ -121,22 +121,3 @@ def stop_generation(request):
     global is_generating
     is_generating = False
     return JsonResponse({"status": "stopped"})
-
-
-def event_stream():
-    while True:
-        events = Event.objects.all()
-        average_duration = events.aggregate(Avg("duration_ms"))["duration_ms__avg"] or 0
-        error_requests = events.filter(status_code__gte=400).count()
-        total_requests = events.count()
-        error_rate = (error_requests / total_requests * 100) if total_requests > 0 else 0
-        requests_per_minute = total_requests / (5 / 60)  # Assuming 5 minutes of data
-
-        yield f"data: {json.dumps({'average_duration': average_duration, 'error_rate': error_rate, 'requests_per_minute': requests_per_minute})}\n\n"
-        time.sleep(5)  # Send updates every 5 seconds
-
-
-def sse_view(request):
-    response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
-    response['Cache-Control'] = 'no-cache'
-    return response
