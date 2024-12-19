@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Event Log</title>
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      th {
+        background-color: #f5f5f5;
+      }
+      .error {
+        color: #dc3545;
+      }
+      .success {
+        color: #28a745;
+      }
+      .button {
+        padding: 10px 20px;
+        margin: 10px;
+        cursor: pointer;
+      }
+      .generating {
+        background-color: #dc3545;
+      }
+      .not-generating {
+        background-color: #28a745;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Event Log</h1>
+
+    <button
+      id="generateBtn"
+      class="button {% if is_generating %}generating{% else %}not-generating{% endif %}"
+      onclick="toggleGeneration()"
+    >
+      {% if is_generating %}Stop Generation{% else %}Start Generation{% endif %}
+    </button>
+
+    <!-- Main Event Table -->
+
+    <!-- Time Taken for API Calls -->
+    <h2>API Call Duration</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Average Duration (ms)</th>
+          <th>Min Duration (ms)</th>
+          <th>Max Duration (ms)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ average_duration }}</td>
+          <td>{{ min_duration }}</td>
+          <td>{{ max_duration }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Error Rate -->
+    <h2>Error Rate</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Total Requests</th>
+          <th>Error Requests</th>
+          <th>Error Rate (%)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ total_requests }}</td>
+          <td>{{ error_requests }}</td>
+          <td>{{ error_rate }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Throughput per Unit of Time -->
+    <h2>Throughput</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Requests per Minute</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ requests_per_minute }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- Event Table -->
+    <table>
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Method</th>
+          <th>Source</th>
+          <th>Status</th>
+          <th>Duration</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in events %}
+        <tr>
+          <td>{{ event.timestamp|date:"Y-m-d H:i:s" }}</td>
+          <td>{{ event.method }}</td>
+          <td>{{ event.source }}</td>
+          <td
+            class="{% if event.status_code >= 400 %}error{% else %}success{% endif %}"
+          >
+            {{ event.status_code }}
+          </td>
+          <td>{{ event.duration_ms }}ms</td>
+          <td>
+            {% if event.status_code >= 400 %} {{ event.metadata.error_message }}
+            {% else %} {{ event.message }} {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <script>
+      let isGenerating = {{ is_generating|lower }};
+
+      function toggleGeneration() {
+          const btn = document.getElementById('generateBtn');
+
+          if (!isGenerating) {
+              fetch('/start/')
+                  .then(response => response.json())
+                  .then(data => {
+                      isGenerating = true;
+                      btn.textContent = 'Stop Generation';
+                      btn.classList.remove('not-generating');
+                      btn.classList.add('generating');
+                  });
+          } else {
+              fetch('/stop/')
+                  .then(response => response.json())
+                  .then(data => {
+                      isGenerating = false;
+                      btn.textContent = 'Start Generation';
+                      btn.classList.remove('generating');
+                      btn.classList.add('not-generating');
+                  });
+          }
+      }
+
+      // Refresh the page every 5 seconds to show new events
+      setInterval(() => {
+          if (isGenerating) {
+              location.reload();
+          }
+      }, 5000);
+    </script>
+  </body>
+</html>
