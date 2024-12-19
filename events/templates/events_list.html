@@ -96,7 +96,7 @@
 
       async function toggleGeneration() {
         const btn = document.getElementById('generateBtn');
-        const endpoint = isGenerating ? '/stop/' : '/start/';
+        const endpoint = isGenerating ? '/generator/stop/' : '/generator/start/';
 
         try {
           await fetch(endpoint);
@@ -117,7 +117,6 @@
 
     <!-- Chart configuration and data handling -->
     <script>
-      // Constants
       const REFRESH_RATES = {
         10: 2000,
         30: 5000,
@@ -159,8 +158,8 @@
         },
       });
 
-      // Add SSE listener (place this after chart initialization)
-      const eventSource = new EventSource("/api/events-stream/");
+      // Add SSE listener
+      const eventSource = new EventSource('/stream/events/');
       eventSource.onmessage = function (event) {
         if (!isGenerating) return;
 
@@ -195,7 +194,6 @@
           }</td>
         `;
 
-        // Insert at top
         if (firstRow) {
           tbody.insertBefore(newRow, firstRow);
         } else {

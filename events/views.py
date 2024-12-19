@@ -19,8 +19,16 @@ from django.core.paginator import Paginator
 is_generating = False
 generator_thread = None
 
+def monitor_dashboard(request):
+    """Main view that renders the monitoring dashboard with events list and real-time chart"""
+    events = Event.objects.all().order_by("-timestamp")
+    return render(request, "events_list.html", {
+        "events": events,
+        "is_generating": is_generating,
+    })
 
-def generate_single_event():
+
+def generate_event():
     ENDPOINTS = [
         "/api/users",
         "/api/products",
@@ -80,23 +88,10 @@ def generate_single_event():
     return event
 
 
-def event_list(request):
-    events = Event.objects.all().order_by("-timestamp")
-    
-    return render(
-        request,
-        "events_list.html",
-        {
-            "events": events,
-            "is_generating": is_generating,
-        },
-    )
-
-
 def generate_events():
     global is_generating
     while is_generating:
-        generate_single_event()
+        generate_event()
         time.sleep(5)  # Generate event every 5 seconds
 
 
@@ -191,7 +186,7 @@ def event_stream(request):
                 time.sleep(1)
                 continue
                 
-            event = generate_single_event()
+            event = generate_event()
             data = {
                 'timestamp': event.timestamp.timestamp() * 1000,
                 'latency': event.duration_ms,
