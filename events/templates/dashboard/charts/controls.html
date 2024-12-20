@@ -1,29 +1,35 @@
-<div class="chart-controls">
-    <div class="btn-group" role="group" aria-label="Select timeframe">
-        <input type="radio" class="btn-check" name="{{ timerange_name }}" id="{{ timerange_id }}-5m" value="5" autocomplete="off" checked />
-        <label class="btn btn-outline-primary" for="{{ timerange_id }}-5m">5m</label>
+<div class="chart-controls d-flex justify-content-between align-items-center mt-4 mb-2">
+    <div class="d-flex align-items-center">
+        <span class="me-2">Timeframe</span>
+        <div class="btn-group btn-group-sm" role="group" aria-label="Select timeframe">
+            <input type="radio" class="btn-check" name="{{ timerange_name }}" id="{{ timerange_id }}-5m" value="5" autocomplete="off" checked />
+            <label class="btn btn-sm btn-outline-primary" for="{{ timerange_id }}-5m">5m</label>
 
-        <input type="radio" class="btn-check" name="{{ timerange_name }}" id="{{ timerange_id }}-15" value="15" autocomplete="off" />
-        <label class="btn btn-outline-primary" for="{{ timerange_id }}-15">15m</label>
+            <input type="radio" class="btn-check" name="{{ timerange_name }}" id="{{ timerange_id }}-15" value="15" autocomplete="off" />
+            <label class="btn btn-sm btn-outline-primary" for="{{ timerange_id }}-15">15m</label>
 
-        <input type="radio" class="btn-check" name="{{ timerange_name }}" id="{{ timerange_id }}-60" value="60" autocomplete="off" />
-        <label class="btn btn-outline-primary" for="{{ timerange_id }}-60">1h</label>
+            <input type="radio" class="btn-check" name="{{ timerange_name }}" id="{{ timerange_id }}-60" value="60" autocomplete="off" />
+            <label class="btn btn-sm btn-outline-primary" for="{{ timerange_id }}-60">1h</label>
 
-        <input type="radio" class="btn-check" name="{{ timerange_name }}" id="{{ timerange_id }}-360" value="360" autocomplete="off" />
-        <label class="btn btn-outline-primary" for="{{ timerange_id }}-360">6h</label>
+            <input type="radio" class="btn-check" name="{{ timerange_name }}" id="{{ timerange_id }}-360" value="360" autocomplete="off" />
+            <label class="btn btn-sm btn-outline-primary" for="{{ timerange_id }}-360">6h</label>
+        </div>
     </div>
 
-    <div class="btn-group ms-3" role="group" aria-label="Select interval">
-        <input type="radio" class="btn-check" name="{{ interval_name }}" id="{{ interval_id }}-10" value="10" autocomplete="off" checked />
-        <label class="btn btn-outline-primary" for="{{ interval_id }}-10">10s</label>
+    <div class="d-flex align-items-center">
+        <span class="me-2">Interval</span>
+        <div class="btn-group btn-group-sm" role="group" aria-label="Select interval">
+            <input type="radio" class="btn-check" name="{{ interval_name }}" id="{{ interval_id }}-10" value="10" autocomplete="off" checked />
+            <label class="btn btn-sm btn-outline-primary" for="{{ interval_id }}-10">10s</label>
 
-        <input type="radio" class="btn-check" name="{{ interval_name }}" id="{{ interval_id }}-30" value="30" autocomplete="off" />
-        <label class="btn btn-outline-primary" for="{{ interval_id }}-30">30s</label>
+            <input type="radio" class="btn-check" name="{{ interval_name }}" id="{{ interval_id }}-30" value="30" autocomplete="off" />
+            <label class="btn btn-sm btn-outline-primary" for="{{ interval_id }}-30">30s</label>
 
-        <input type="radio" class="btn-check" name="{{ interval_name }}" id="{{ interval_id }}-60" value="60" autocomplete="off" />
-        <label class="btn btn-outline-primary" for="{{ interval_id }}-60">1m</label>
+            <input type="radio" class="btn-check" name="{{ interval_name }}" id="{{ interval_id }}-60" value="60" autocomplete="off" />
+            <label class="btn btn-sm btn-outline-primary" for="{{ interval_id }}-60">1m</label>
 
-        <input type="radio" class="btn-check" name="{{ interval_name }}" id="{{ interval_id }}-300" value="300" autocomplete="off" />
-        <label class="btn btn-outline-primary" for="{{ interval_id }}-300">5m</label>
+            <input type="radio" class="btn-check" name="{{ interval_name }}" id="{{ interval_id }}-300" value="300" autocomplete="off" />
+            <label class="btn btn-sm btn-outline-primary" for="{{ interval_id }}-300">5m</label>
+        </div>
     </div>
 </div>
