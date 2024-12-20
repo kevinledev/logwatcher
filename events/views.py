@@ -23,7 +23,6 @@ def monitor_dashboard(request):
     """Main view that renders the monitoring dashboard"""
     events = Event.objects.all().order_by("-timestamp")
     return render(request, "events_list.html", {
-        "events": events,
         "is_generating": is_generating,
     })
 
