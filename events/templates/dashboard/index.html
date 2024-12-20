@@ -50,11 +50,13 @@
           </div>
 
           <!-- Event Table -->
-          <div class="card">
-            <div class="p-3">
-              {% include "dashboard/table/base.html" %}
-            </div>
+          <div class="card"
+               id="event-table-container"
+               hx-get="{% url 'table_rows' %}" 
+               hx-trigger="load"
+               hx-swap="innerHTML">
           </div>
+        
         </div>
       </div>
 

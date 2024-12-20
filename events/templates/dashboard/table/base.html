@@ -1,19 +1,83 @@
-<table>
-    <thead>
-        <tr>
-            <th>Timestamp</th>
-            <th>Method</th>
-            <th>Source</th>
-            <th>Status</th>
-            <th>Duration</th>
-            <th>Details</th>
-        </tr>
-    </thead>
-    <tbody hx-get="{% url 'table_rows' %}"
-           hx-trigger="load"
-           hx-swap="innerHTML">
-    </tbody>
-</table> 
+<div class="card-body table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th style="width: 20%">Timestamp</th>
+                <th style="width: 10%">Method</th>
+                <th style="width: 15%">Source</th>
+                <th style="width: 10%">Status</th>
+                <th style="width: 15%">Duration</th>
+                <th style="width: 30%">Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in events %}
+            <tr>
+                <td style="width: 20%">{{ event.timestamp }}</td>
+                <td style="width: 10%">{{ event.method }}</td>
+                <td style="width: 15%">{{ event.source }}</td>
+                <td style="width: 10%">{{ event.status_code }}</td>
+                <td style="width: 15%">{{ event.duration_ms }}ms</td>
+                <td style="width: 30%">
+                    {% if event.status_code >= 400 %}
+                        {{ event.metadata.error_message }}
+                    {% else %}
+                        Success
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if events %}
+    <nav aria-label="Event list navigation">
+        <ul class="pagination justify-content-center m-0">
+            {% if events.has_previous %}
+            <li class="page-item">
+                <a class="page-link" 
+                   hx-get="{% url 'table_rows' %}?page=1"
+                   hx-target="#event-table-container"
+                   aria-label="First">
+                    First
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" 
+                   hx-get="{% url 'table_rows' %}?page={{ events.previous_page_number }}"
+                   hx-target="#event-table-container"
+                   aria-label="Previous">
+                    &lt;
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="page-item active" aria-current="page">
+                <a class="page-link">{{ events.number }}</a>
+            </li>
+
+            {% if events.has_next %}
+            <li class="page-item">
+                <a class="page-link"
+                   hx-get="{% url 'table_rows' %}?page={{ events.next_page_number }}"
+                   hx-target="#event-table-container"
+                   aria-label="Next">
+                    &gt;
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link"
+                   hx-get="{% url 'table_rows' %}?page={{ events.paginator.num_pages }}"
+                   hx-target="#event-table-container"
+                   aria-label="Last">
+                    Last
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
 
 <script>
     streamHandler.subscribe((data) => {
@@ -25,7 +89,7 @@
             <td>${data.time.toLocaleString()}</td>
             <td>${data.method}</td>
             <td>${data.source}</td>
-            <td class="${data.isError ? "error" : "success"}">${data.status}</td>
+            <td>${data.status}</td>
             <td>${data.duration}ms</td>
             <td>${data.message}</td>
         `;
@@ -37,7 +101,7 @@
         }
 
         // Keep pagination count correct
-        const rows = tbody.querySelectorAll("tr:not(#pagination-row)");
+        const rows = tbody.querySelectorAll("tr");
         if (rows.length > 10) {
             rows[rows.length - 1].remove();
         }
