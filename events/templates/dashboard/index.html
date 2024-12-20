@@ -9,55 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.1/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0/dist/chartjs-plugin-streaming.min.js"></script>
     <script src="{% static 'js/StreamHandler.js' %}"></script>
-    <style>
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-      }
-      th,
-      td {
-        padding: 12px;
-        text-align: left;
-        border-bottom: 1px solid #ddd;
-      }
-      th {
-        background-color: #f5f5f5;
-      }
-      .error {
-        color: #dc3545;
-      }
-      .success {
-        color: #28a745;
-      }
-      .button {
-        padding: 10px 20px;
-        margin: 10px;
-        cursor: pointer;
-      }
-      .generating {
-        background-color: #dc3545;
-      }
-      .not-generating {
-        background-color: #28a745;
-      }
-      #pagination-row {
-        background-color: #f8f9fa;
-      }
-
-      #pagination-row button {
-        margin: 5px;
-        padding: 5px 10px;
-        border: 1px solid #ddd;
-        border-radius: 3px;
-        background-color: white;
-        cursor: pointer;
-      }
-
-      #pagination-row button:hover {
-        background-color: #e9ecef;
-      }
-    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css">
     <script>
       let isGenerating = {{ is_generating|lower }};
       const streamHandler = new StreamHandler();
