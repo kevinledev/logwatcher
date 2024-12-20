@@ -116,15 +116,17 @@
     });
 
     document.getElementById("errorInterval").addEventListener("change", (e) => {
-        const refreshRate = ERROR_REFRESH_RATES[e.target.value];
+        const intervalSeconds = parseInt(e.target.value);
+        const refreshRate = ERROR_REFRESH_RATES[intervalSeconds];
         errorRateChart.options.scales.x.realtime.refresh = refreshRate;
+        streamHandler.setInterval(intervalSeconds);
         loadHistoricalErrorData();
     });
 
     // Keep track of requests in the current window
     let requestWindow = [];
     
-    // Subscribe to stream updates
+    // Subscribe to stream updates with buffering
     streamHandler.subscribe((data) => {
         const now = data.time.getTime();
         
@@ -158,7 +160,7 @@
 
             errorRateChart.update();
         }
-    });
+    }, { buffered: true });
 
     document.addEventListener('generationStateChanged', function(e) {
         if (!e.detail.isGenerating) {

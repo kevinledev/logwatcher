@@ -129,22 +129,24 @@
     });
 
     document.getElementById("interval").addEventListener("change", (e) => {
-        const refreshRate = REFRESH_RATES[e.target.value];
+        const intervalSeconds = parseInt(e.target.value);
+        const refreshRate = REFRESH_RATES[intervalSeconds];
         latencyChart.options.scales.x.realtime.refresh = refreshRate;
+        streamHandler.setInterval(intervalSeconds);
         loadHistoricalLatencyData();
     });
 
     // Initialize
     loadHistoricalLatencyData();
 
-    // Subscribe to stream updates
+    // Subscribe to stream updates with buffering for the chart
     streamHandler.subscribe((data) => {
         latencyChart.data.datasets[0].data.push({
             x: data.time,
             y: data.duration
         });
         latencyChart.update();
-    });
+    }, { buffered: true });
 
     document.addEventListener('generationStateChanged', function(e) {
         if (!e.detail.isGenerating) {
