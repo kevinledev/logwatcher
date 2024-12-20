@@ -111,17 +111,11 @@
     // Initialize
     loadHistoricalData();
 
-    // Add chart update listener to existing event source
-    eventSource.addEventListener('api.request', function(e) {
-        if (!isGenerating) return;
-
-        const data = JSON.parse(e.data);
-        if (!data.timestamp) return;
-
-        // Update chart
+    // Subscribe to stream updates
+    streamHandler.subscribe((data) => {
         latencyChart.data.datasets[0].data.push({
-            x: data.timestamp,
-            y: data.duration_ms
+            x: data.time,
+            y: data.duration
         });
         latencyChart.update();
     });

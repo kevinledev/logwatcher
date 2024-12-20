@@ -1,3 +1,5 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -6,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming"></script>
+    <script src="{% static 'js/StreamHandler.js' %}"></script>
     <style>
       table {
         width: 100%;
@@ -57,7 +60,7 @@
     </style>
     <script>
       let isGenerating = {{ is_generating|lower }};
-      const eventSource = new EventSource('/stream/events/');
+      const streamHandler = new StreamHandler();
     </script>
   </head>
   <body>
