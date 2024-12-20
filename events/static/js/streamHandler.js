@@ -25,8 +25,13 @@ class StreamHandler {
   }
 
   setInterval(seconds, subscriberId) {
+    const lastUpdate = this.lastUpdates.get(subscriberId) || Date.now();
+    
+    const timeSinceLastUpdate = Date.now() - lastUpdate;
+    const remainingTime = seconds * 1000 - (timeSinceLastUpdate % (seconds * 1000));
+    
     this.dataBuffers.set(subscriberId, []);
-    this.lastUpdates.set(subscriberId, Date.now());
+    this.lastUpdates.set(subscriberId, lastUpdate + (timeSinceLastUpdate - remainingTime));
   }
 
   setupSubscribers() {
@@ -53,7 +58,14 @@ class StreamHandler {
             buffer.push(formattedData);
 
             const now = Date.now();
-            if (now - this.lastUpdates.get(id) >= sub.interval * 1000) {
+            const lastUpdate = this.lastUpdates.get(id);
+            const interval = sub.interval * 1000;
+            const timeSinceLastUpdate = now - lastUpdate;
+
+            if (timeSinceLastUpdate >= interval) {
+              const intervals = Math.floor(timeSinceLastUpdate / interval);
+              this.lastUpdates.set(id, lastUpdate + (intervals * interval));
+              
               if (buffer.length > 0) {
                 const avgDuration = buffer.reduce((sum, item) => sum + item.duration, 0) / buffer.length;
                 const latestTime = buffer[buffer.length - 1].time;
