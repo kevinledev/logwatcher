@@ -2,20 +2,9 @@
     <canvas id="errorRateChart"></canvas>
 </div>
 
-<!-- Add time range controls -->
-<select id="errorTimeRange">
-    <option value="5">Last 5 minutes</option>
-    <option value="15">Last 15 minutes</option>
-    <option value="60">Last hour</option>
-    <option value="360">Last 6 hours</option>
-</select>
-
-<select id="errorInterval">
-    <option value="10">10 seconds</option>
-    <option value="30">30 seconds</option>
-    <option value="60">1 minute</option>
-    <option value="300">5 minutes</option>
-</select>
+{% with timerange_id="errorTimeRange" timerange_name="error-timeframe-group" interval_id="errorInterval" interval_name="error-interval-group" %}
+    {% include "dashboard/charts/controls.html" %}
+{% endwith %}
 
 <script>
     const ERROR_REFRESH_RATES = {
@@ -113,19 +102,23 @@
     // Initialize with historical data
     loadHistoricalErrorData();
 
-    // Event listeners for controls
-    document.getElementById("errorTimeRange").addEventListener("change", (e) => {
-        const rangeMinutes = parseInt(e.target.value);
-        errorRateChart.options.scales.x.realtime.duration = rangeMinutes * 60 * 1000;
-        loadHistoricalErrorData();
+    // Event listeners for timeframe controls
+    document.querySelectorAll('input[name="error-timeframe-group"]').forEach((radioBtn) => {
+        radioBtn.addEventListener("change", (e) => {
+            errorRateChart.options.scales.x.realtime.duration = parseInt(e.target.value) * 60 * 1000;
+            loadHistoricalErrorData();
+        });
     });
 
-    document.getElementById("errorInterval").addEventListener("change", (e) => {
-        const intervalSeconds = parseInt(e.target.value);
-        const refreshRate = ERROR_REFRESH_RATES[intervalSeconds];
-        errorRateChart.options.scales.x.realtime.refresh = refreshRate;
-        streamHandler.setInterval(intervalSeconds);
-        loadHistoricalErrorData();
+    // Event listeners for interval controls
+    document.querySelectorAll('input[name="error-interval-group"]').forEach((radioBtn) => {
+        radioBtn.addEventListener("change", (e) => {
+            const intervalSeconds = parseInt(e.target.value);
+            const refreshRate = ERROR_REFRESH_RATES[intervalSeconds];
+            errorRateChart.options.scales.x.realtime.refresh = refreshRate;
+            streamHandler.setInterval(intervalSeconds);
+            loadHistoricalErrorData();
+        });
     });
 
     // Keep track of requests in the current window
@@ -134,7 +127,8 @@
     // Subscribe to stream updates with buffering
     streamHandler.subscribe((data) => {
         // Only add data points according to our selected interval
-        const intervalSeconds = parseInt(document.getElementById("errorInterval").value);
+        const selectedInterval = document.querySelector('input[name="error-interval-group"]:checked');
+        const intervalSeconds = selectedInterval ? parseInt(selectedInterval.value) : 60;
         const now = data.time.getTime();
         const lastDataPoint = errorRateChart.data.datasets[0].data[errorRateChart.data.datasets[0].data.length - 1];
         
@@ -180,8 +174,11 @@
     });
 
     async function loadHistoricalErrorData() {
-        const intervalSeconds = document.getElementById("errorInterval").value;
-        const rangeMinutes = document.getElementById("errorTimeRange").value;
+        const selectedInterval = document.querySelector('input[name="error-interval-group"]:checked');
+        const intervalSeconds = selectedInterval ? parseInt(selectedInterval.value) : 60;
+
+        const selectedTimeframe = document.querySelector('input[name="error-timeframe-group"]:checked');
+        const rangeMinutes = selectedTimeframe ? parseInt(selectedTimeframe.value) : 15;
 
         try {
             const response = await fetch(
