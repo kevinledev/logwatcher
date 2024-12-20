@@ -2,33 +2,9 @@
     <canvas id="latencyChart"></canvas>
 </div>
 
-<div id="timeRange" class="btn-group" role="group" aria-label="Select timeframe">
-  <input type="radio" class="btn-check" name="timeframe-group" id="timeframe-5m" value="5" autocomplete="off" checked />
-  <label class="btn btn-outline-primary" for="timeframe-5m">5m</label>
-
-  <input type="radio" class="btn-check" name="timeframe-group" id="timeframe-15" value="15" autocomplete="off" />
-  <label class="btn btn-outline-primary" for="timeframe-15">15m</label>
-
-  <input type="radio" class="btn-check" name="timeframe-group" id="timeframe-60" value="60" autocomplete="off" />
-  <label class="btn btn-outline-primary" for="timeframe-60">1h</label>
-
-  <input type="radio" class="btn-check" name="timeframe-group" id="timeframe-360" value="360" autocomplete="off"/>
-  <label class="btn btn-outline-primary" for="timeframe-360">6h</label>
-</div>
-
-<div id="interval" class="btn-group" role="group" aria-label="Select interval">
-  <input type="radio" class="btn-check" name="interval-group" id="interval-10" value="10" autocomplete="off" checked />
-  <label class="btn btn-outline-primary" for="interval-10">10s</label>
-
-  <input type="radio" class="btn-check" name="interval-group" id="interval-30" value="30" autocomplete="off" />
-  <label class="btn btn-outline-primary" for="interval-30">30s</label>
-
-  <input type="radio" class="btn-check" name="interval-group" id="interval-60" value="60" autocomplete="off" />
-  <label class="btn btn-outline-primary" for="interval-60">1m</label>
-
-  <input type="radio" class="btn-check" name="interval-group" id="interval-300" value="300" autocomplete="off" />
-  <label class="btn btn-outline-primary" for="interval-300">5m</label>
-</div>
+{% with timerange_id="latencyTimeRange" timerange_name="latency-timeframe-group" interval_id="latencyInterval" interval_name="latency-interval-group" %}
+    {% include "dashboard/charts/controls.html" %}
+{% endwith %}
 
 <script>
     const REFRESH_RATES = {
@@ -116,11 +92,11 @@
 
     async function loadHistoricalLatencyData() {
         // Get selected timeframe
-        const selectedRadio = document.querySelector('input[name="timeframe-group"]:checked');
+        const selectedRadio = document.querySelector('input[name="latency-timeframe-group"]:checked');
         const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
 
         // Get selected interval
-        const selectedInterval = document.querySelector('input[name="interval-group"]:checked');
+        const selectedInterval = document.querySelector('input[name="latency-interval-group"]:checked');
         const intervalSeconds = selectedInterval ? parseInt(selectedInterval.value) : 60;
 
         fetch(`/api/historical-latency-data/?interval=${intervalSeconds}&range=${rangeMinutes}`)
@@ -135,7 +111,7 @@
     }
 
     // Event listeners for timeframe controls
-    document.querySelectorAll('input[name="timeframe-group"]').forEach((radioBtn) => {
+    document.querySelectorAll('input[name="latency-timeframe-group"]').forEach((radioBtn) => {
         radioBtn.addEventListener("change", (e) => {
             latencyChart.options.scales.x.realtime.duration = parseInt(e.target.value) * 60 * 1000;
             loadHistoricalLatencyData();
@@ -143,7 +119,7 @@
     });
 
     // Event listeners for interval controls
-    document.querySelectorAll('input[name="interval-group"]').forEach((radioBtn) => {
+    document.querySelectorAll('input[name="latency-interval-group"]').forEach((radioBtn) => {
         radioBtn.addEventListener("change", (e) => {
             const intervalSeconds = parseInt(e.target.value);
             const refreshRate = REFRESH_RATES[intervalSeconds] || 5000;
@@ -159,7 +135,7 @@
     // Subscribe to stream updates with buffering
     streamHandler.subscribe((data) => {
         // Only add data points according to our selected interval
-        const selectedInterval = document.querySelector('input[name="interval-group"]:checked');
+        const selectedInterval = document.querySelector('input[name="latency-interval-group"]:checked');
         const intervalSeconds = selectedInterval ? parseInt(selectedInterval.value) : 60;
         const now = Date.now();
         const lastDataPoint = latencyChart.data.datasets[0].data[latencyChart.data.datasets[0].data.length - 1];
