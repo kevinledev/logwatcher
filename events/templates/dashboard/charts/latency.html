@@ -159,7 +159,8 @@
     // Subscribe to stream updates with buffering
     streamHandler.subscribe((data) => {
         // Only add data points according to our selected interval
-        const intervalSeconds = parseInt(document.getElementById("interval").value);
+        const selectedInterval = document.querySelector('input[name="interval-group"]:checked');
+        const intervalSeconds = selectedInterval ? parseInt(selectedInterval.value) : 60;
         const now = Date.now();
         const lastDataPoint = latencyChart.data.datasets[0].data[latencyChart.data.datasets[0].data.length - 1];
         
@@ -169,7 +170,7 @@
                 x: data.time,
                 y: data.duration
             });
-            latencyChart.update();
+            latencyChart.update('quiet');
         }
     }, { buffered: true });
 
