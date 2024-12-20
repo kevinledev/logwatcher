@@ -14,3 +14,37 @@
            hx-swap="innerHTML">
     </tbody>
 </table> 
+
+<script>
+    eventSource.addEventListener('api.request', function(e) {
+        if (!isGenerating) return;
+
+        const data = JSON.parse(e.data);
+        if (!data.timestamp) return;
+
+        // Update table with new row
+        const tbody = document.querySelector("table tbody");
+        const firstRow = tbody.querySelector("tr");
+        const newRow = document.createElement("tr");
+        newRow.innerHTML = `
+            <td>${new Date(data.timestamp).toLocaleString()}</td>
+            <td>${data.method}</td>
+            <td>${data.source}</td>
+            <td class="${data.status_code >= 400 ? "error" : "success"}">${data.status_code}</td>
+            <td>${data.duration_ms}ms</td>
+            <td>${data.status_code >= 400 ? data.metadata.error_message : "Success"}</td>
+        `;
+
+        if (firstRow) {
+            tbody.insertBefore(newRow, firstRow);
+        } else {
+            tbody.appendChild(newRow);
+        }
+
+        // Keep pagination count correct
+        const rows = tbody.querySelectorAll("tr:not(#pagination-row)");
+        if (rows.length > 10) {
+            rows[rows.length - 1].remove();
+        }
+    });
+</script> 
