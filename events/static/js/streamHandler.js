@@ -50,8 +50,9 @@ class StreamHandler {
         this.subscribers.forEach((sub, id) => {
           if (sub.options.buffered) {
             if (!this.dataBuffers.has(id)) {
-              this.dataBuffers.set(id, []);
+              this.dataBuffers.set(id, [formattedData]);
               this.lastUpdates.set(id, Date.now());
+              return;
             }
 
             const buffer = this.dataBuffers.get(id);
@@ -62,9 +63,9 @@ class StreamHandler {
             const interval = sub.interval * 1000;
             const timeSinceLastUpdate = now - lastUpdate;
 
-            if (timeSinceLastUpdate >= interval) {
+            if (timeSinceLastUpdate >= interval || buffer.length === 1) {
               const intervals = Math.floor(timeSinceLastUpdate / interval);
-              this.lastUpdates.set(id, lastUpdate + (intervals * interval));
+              this.lastUpdates.set(id, lastUpdate + intervals * interval);
               
               if (buffer.length > 0) {
                 const avgDuration = buffer.reduce((sum, item) => sum + item.duration, 0) / buffer.length;
