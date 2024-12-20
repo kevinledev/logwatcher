@@ -1,10 +1,10 @@
+import asyncio
 from django.shortcuts import render
 from django.http import JsonResponse, StreamingHttpResponse
 from .models import Event
 import random
-import threading
 import time
-from django.db.models import Avg, Min, Max
+from django.db.models import Avg, Min
 import json
 from django.utils import timezone
 from datetime import timedelta
@@ -14,17 +14,13 @@ from django.db.models.functions import (
 from django.db.models import IntegerField
 from django.db.models.expressions import ExpressionWrapper
 from django.core.paginator import Paginator
-from queue import Queue
+from asgiref.sync import sync_to_async
 
 # Global flag to control event generation
 is_generating = False
-generator_thread = None
-
-# At the top of the file
-connected_clients = set()
 
 def monitor_dashboard(request):
-    """Main view that renders the monitoring dashboard with events list and real-time chart"""
+    """Main view that renders the monitoring dashboard"""
     events = Event.objects.all().order_by("-timestamp")
     return render(request, "events_list.html", {
         "events": events,
@@ -32,7 +28,16 @@ def monitor_dashboard(request):
     })
 
 
+def event_rows(request):
+    """HTMX endpoint for paginated event rows"""
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(Event.objects.all().order_by("-timestamp"), 10)
+    events = paginator.get_page(page_number)
+    return render(request, "event_rows.html", {"events": events})
+
+
 def generate_event():
+    """Creates a single event"""
     ENDPOINTS = [
         "/api/users",
         "/api/products",
@@ -56,13 +61,8 @@ def generate_event():
         {"code": 500, "weight": 2, "message": "Internal server error"},
     ]
 
-    pattern = random.choices(API_PATTERNS, weights=[p["weight"] for p in API_PATTERNS])[
-        0
-    ]
-
-    status = random.choices(
-        STATUS_PATTERNS, weights=[s["weight"] for s in STATUS_PATTERNS]
-    )[0]
+    pattern = random.choices(API_PATTERNS, weights=[p["weight"] for p in API_PATTERNS])[0]
+    status = random.choices(STATUS_PATTERNS, weights=[s["weight"] for s in STATUS_PATTERNS])[0]
 
     event = Event.objects.create(
         method=pattern["method"],
@@ -86,31 +86,13 @@ def generate_event():
             'error_message': f"{status['message']} for {event.method} request to {event.source}",
             'error_details': error_details
         }
+        event.save()
 
-    event.save()
-
-    # Prepare data for clients
-    data = json.dumps({
-        'timestamp': event.timestamp.timestamp() * 1000,
-        'latency': event.duration_ms,
-        'event': {
-            'timestamp': event.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            'method': event.method,
-            'source': event.source,
-            'status_code': event.status_code,
-            'duration_ms': event.duration_ms,
-            'metadata': event.metadata
-        }
-    })
-    
-    # Push to all connected clients
-    for queue in connected_clients:
-        queue.put(data)
-    
     return event
 
 
 def generate_events():
+    """Background thread that generates events while is_generating is True"""
     global is_generating
     while is_generating:
         generate_event()
@@ -118,15 +100,14 @@ def generate_events():
 
 
 def start_generation(request):
-    global is_generating, generator_thread
-    if not is_generating:
-        is_generating = True
-        generator_thread = threading.Thread(target=generate_events)
-        generator_thread.start()
+    """API endpoint to start event generation"""
+    global is_generating
+    is_generating = True
     return JsonResponse({"status": "started"})
 
 
 def stop_generation(request):
+    """API endpoint to stop event generation"""
     global is_generating
     is_generating = False
     return JsonResponse({"status": "stopped"})
@@ -150,12 +131,12 @@ def get_latency_data(request):
 def get_historical_latency_data(request):
     interval_seconds = int(request.GET.get("interval", "60"))
     range_minutes = int(request.GET.get('range', '15'))  # Now expecting direct minutes
-    
+
     now = timezone.now()
     start_time = now - timedelta(minutes=range_minutes)
-    
+
     events = Event.objects.filter(timestamp__gte=start_time).order_by('timestamp')
-    
+
     if interval_seconds < 60:  # Sub-minute intervals (10s, 30s)
         aggregated_data = (
             events.annotate(
@@ -189,7 +170,7 @@ def get_historical_latency_data(request):
             )
             .order_by('bucket')
         )
-    
+
     return JsonResponse({
         'data': [
             {
@@ -200,29 +181,35 @@ def get_historical_latency_data(request):
     })
 
 
-def event_stream(request):
-    queue = Queue()
-    connected_clients.add(queue)
-    
-    def stream():
-        try:
-            while True:
-                data = queue.get()  # This blocks until data is available
-                yield f"data: {data}\n\n"
-        finally:
-            connected_clients.remove(queue)
-    
+async def event_stream(request):
+    """Generates and streams events directly"""
+    async def stream():
+        while True:
+            if is_generating:
+                event = await sync_to_async(generate_event)()
+                
+                # Format event data using SSE fields
+                event_data = {
+                    'timestamp': event.timestamp.timestamp() * 1000,
+                    'method': event.method,
+                    'source': event.source, 
+                    'status_code': event.status_code,
+                    'duration_ms': event.duration_ms,
+                    'metadata': event.metadata
+                }
+                
+                # Yield each SSE field on separate lines
+                yield f"id: {event.request_id}\n"
+                yield f"event: api.request\n"
+                yield f"data: {json.dumps(event_data)}\n\n"
+                
+                await asyncio.sleep(5)
+            else:
+                await asyncio.sleep(1)
+
     response = StreamingHttpResponse(
         streaming_content=stream(),
         content_type='text/event-stream'
     )
     response['Cache-Control'] = 'no-cache'
     return response
-
-
-def event_rows(request):
-    page_number = request.GET.get('page', 1)
-    paginator = Paginator(Event.objects.all().order_by("-timestamp"), 10)  # 10 items per page
-    events = paginator.get_page(page_number)
-    
-    return render(request, 'event_rows.html', {'events': events})

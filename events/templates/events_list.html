@@ -160,38 +160,32 @@
 
       // Add SSE listener
       const eventSource = new EventSource('/stream/events/');
-      eventSource.onmessage = function (event) {
+
+      eventSource.addEventListener('api.request', function(e) {
         if (!isGenerating) return;
 
-        const data = JSON.parse(event.data);
-        if (!data.timestamp) return; // Skip empty updates
+        const data = JSON.parse(e.data);
+        if (!data.timestamp) return;
 
         // Update chart
         latencyChart.data.datasets[0].data.push({
           x: data.timestamp,
-          y: data.latency,
+          y: data.duration_ms
         });
         latencyChart.update();
 
-        // Update table - prepend new row and remove last if needed
+        // Update table
         const tbody = document.querySelector("table tbody");
         const firstRow = tbody.querySelector("tr");
 
-        // Create new row from event data
         const newRow = document.createElement("tr");
         newRow.innerHTML = `
-          <td>${data.event.timestamp}</td>
-          <td>${data.event.method}</td>
-          <td>${data.event.source}</td>
-          <td class="${data.event.status_code >= 400 ? "error" : "success"}">${
-          data.event.status_code
-        }</td>
-          <td>${data.event.duration_ms}ms</td>
-          <td>${
-            data.event.status_code >= 400
-              ? data.event.metadata.error_message
-              : "Success"
-          }</td>
+          <td>${new Date(data.timestamp).toLocaleString()}</td>
+          <td>${data.method}</td>
+          <td>${data.source}</td>
+          <td class="${data.status_code >= 400 ? "error" : "success"}">${data.status_code}</td>
+          <td>${data.duration_ms}ms</td>
+          <td>${data.status_code >= 400 ? data.metadata.error_message : "Success"}</td>
         `;
 
         if (firstRow) {
@@ -203,10 +197,9 @@
         // Keep pagination count correct
         const rows = tbody.querySelectorAll("tr:not(#pagination-row)");
         if (rows.length > 10) {
-          // Assuming 10 items per page
           rows[rows.length - 1].remove();
         }
-      };
+      });
     </script>
 
     <!-- Data fetching and updates -->
