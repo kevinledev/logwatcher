@@ -40,6 +40,12 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'API Response Latency Over Time'
+                }
+            },
             scales: {
                 x: {
                     type: "realtime",
@@ -49,9 +55,17 @@
                         refresh: 1000,
                         onRefresh: () => {},
                     },
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
                 },
                 y: {
                     beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Response Time (ms)'
+                    }
                 },
             },
         },
