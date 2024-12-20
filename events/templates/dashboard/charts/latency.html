@@ -35,7 +35,7 @@
                 borderColor: "#2563eb",
                 backgroundColor: "rgba(37, 99, 235, 0.1)",
                 fill: true,
-                tension: 0.1,
+                tension: 0.05,
                 borderWidth: 2
             }],
         },
@@ -46,7 +46,7 @@
                 title: {
                     display: true,
                     text: 'API Response Latency Over Time',
-                    color: '#374151',
+                    color: '#1F252E',
                     font: {
                         size: 16,
                         family: 'Inter, system-ui, -apple-system, sans-serif'
@@ -57,7 +57,7 @@
                         font: {
                             family: 'Inter, system-ui, -apple-system, sans-serif'
                         },
-                        color: '#374151'
+                        color: '#1F252E'
                     }
                 }
             },
@@ -70,15 +70,11 @@
                         refresh: 1000,
                         onRefresh: () => {},
                     },
-                    title: {
-                        display: true,
-                        text: 'Time'
-                    },
                     grid: {
                         color: 'rgba(107, 114, 128, 0.1)'
                     },
                     ticks: {
-                        color: '#6b7280',
+                        color: '#52627A',
                         font: {
                             family: 'Inter, system-ui, -apple-system, sans-serif'
                         }
@@ -88,13 +84,14 @@
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Response Time (ms)'
+                        text: 'Response Time (ms)',
+                        color: '#1F252E'
                     },
                     grid: {
                         color: 'rgba(107, 114, 128, 0.1)'
                     },
                     ticks: {
-                        color: '#6b7280',
+                        color: '#52637A',
                         font: {
                             family: 'Inter, system-ui, -apple-system, sans-serif'
                         }
@@ -130,7 +127,7 @@
 
     document.getElementById("interval").addEventListener("change", (e) => {
         const intervalSeconds = parseInt(e.target.value);
-        const refreshRate = REFRESH_RATES[intervalSeconds];
+        const refreshRate = 5000;
         latencyChart.options.scales.x.realtime.refresh = refreshRate;
         streamHandler.setInterval(intervalSeconds);
         loadHistoricalLatencyData();

@@ -35,7 +35,7 @@
                 borderColor: "#f59e0b",
                 backgroundColor: "rgba(245, 158, 11, 0.1)",
                 fill: true,
-                tension: 0.1,
+                tension: 0.05,
                 borderWidth: 2
             }, {
                 label: "Server Errors (5xx)",
@@ -43,7 +43,7 @@
                 borderColor: "#dc2626",
                 backgroundColor: "rgba(220, 38, 38, 0.1)",
                 fill: true,
-                tension: 0.1,
+                tension: 0.05,
                 borderWidth: 2
             }]
         },
@@ -54,7 +54,7 @@
                 title: {
                     display: true,
                     text: 'API Error Rates Over Time',
-                    color: '#374151',
+                    color: '#1F252E',
                     font: {
                         size: 16,
                         family: 'Inter, system-ui, -apple-system, sans-serif'
@@ -65,7 +65,7 @@
                         font: {
                             family: 'Inter, system-ui, -apple-system, sans-serif'
                         },
-                        color: '#374151'
+                        color: '#1F252E'
                     }
                 }
             },
@@ -82,7 +82,7 @@
                         color: 'rgba(107, 114, 128, 0.1)'
                     },
                     ticks: {
-                        color: '#6b7280',
+                        color: '#52627A',
                         font: {
                             family: 'Inter, system-ui, -apple-system, sans-serif'
                         }
@@ -90,12 +90,17 @@
                 },
                 y: {
                     beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Error Rate (%)',
+                        color: '#1F252E'
+                    },
                     max: 100,
                     grid: {
                         color: 'rgba(107, 114, 128, 0.1)'
                     },
                     ticks: {
-                        color: '#6b7280',
+                        color: '#52637A',
                         font: {
                             family: 'Inter, system-ui, -apple-system, sans-serif'
                         }
