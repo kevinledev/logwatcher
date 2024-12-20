@@ -2,9 +2,9 @@ class StreamHandler {
   constructor() {
     this.subscribers = new Map();
     this.eventSource = null;
-    this.dataBuffer = [];
-    this.lastUpdate = Date.now();
-    this.currentInterval = 10; // Default 10s interval
+    this.dataBuffers = new Map();
+    this.lastUpdates = new Map();
+    this.defaultInterval = 10;
   }
 
   connect() {
@@ -24,10 +24,9 @@ class StreamHandler {
     }
   }
 
-  setInterval(seconds) {
-    this.currentInterval = seconds;
-    this.dataBuffer = []; // Clear buffer when interval changes
-    this.lastUpdate = Date.now(); // Reset timer
+  setInterval(seconds, subscriberId) {
+    this.dataBuffers.set(subscriberId, []);
+    this.lastUpdates.set(subscriberId, Date.now());
   }
 
   setupSubscribers() {
@@ -42,43 +41,42 @@ class StreamHandler {
         if (!rawData.timestamp) return;
 
         const formattedData = this.formatEventData(rawData);
-        this.dataBuffer.push(formattedData);
 
-        // Immediately notify non-buffered subscribers
-        this.subscribers.forEach((sub) => {
-          if (!sub.options.buffered) {
+        this.subscribers.forEach((sub, id) => {
+          if (sub.options.buffered) {
+            if (!this.dataBuffers.has(id)) {
+              this.dataBuffers.set(id, []);
+              this.lastUpdates.set(id, Date.now());
+            }
+
+            const buffer = this.dataBuffers.get(id);
+            buffer.push(formattedData);
+
+            const now = Date.now();
+            if (now - this.lastUpdates.get(id) >= sub.interval * 1000) {
+              if (buffer.length > 0) {
+                const avgDuration = buffer.reduce((sum, item) => sum + item.duration, 0) / buffer.length;
+                const latestTime = buffer[buffer.length - 1].time;
+
+                const aggregatedData = {
+                  time: latestTime,
+                  duration: avgDuration,
+                  method: formattedData.method,
+                  source: formattedData.source,
+                  status: formattedData.status,
+                  isError: formattedData.isError,
+                  message: formattedData.message
+                };
+
+                sub.callback(aggregatedData);
+                this.dataBuffers.set(id, []);
+                this.lastUpdates.set(id, now);
+              }
+            }
+          } else {
             sub.callback(formattedData);
           }
         });
-
-        const now = Date.now();
-        // Use the configured interval for buffer timing
-        if (now - this.lastUpdate >= this.currentInterval * 1000) {
-          if (this.dataBuffer.length > 0) {
-            const avgDuration = this.dataBuffer.reduce((sum, item) => sum + item.duration, 0) / this.dataBuffer.length;
-            const latestTime = this.dataBuffer[this.dataBuffer.length - 1].time;
-            
-            const aggregatedData = {
-              time: latestTime,
-              duration: avgDuration,
-              method: formattedData.method,
-              source: formattedData.source,
-              status: formattedData.status,
-              isError: formattedData.isError,
-              message: formattedData.message
-            };
-
-            // Notify buffered subscribers
-            this.subscribers.forEach((sub) => {
-              if (sub.options.buffered) {
-                sub.callback(aggregatedData);
-              }
-            });
-            
-            this.dataBuffer = [];
-            this.lastUpdate = now;
-          }
-        }
       } catch (error) {
         console.error("Error processing stream data:", error);
       }
@@ -87,11 +85,25 @@ class StreamHandler {
 
   subscribe(callback, options = { buffered: false }) {
     const id = Math.random().toString(36);
-    this.subscribers.set(id, { callback, options });
+    this.subscribers.set(id, { 
+      callback, 
+      options,
+      interval: this.defaultInterval
+    });
+    
+    if (options.buffered) {
+      this.dataBuffers.set(id, []);
+      this.lastUpdates.set(id, Date.now());
+    }
+
     if (isGenerating && !this.eventSource) {
       this.connect();
     }
-    return () => this.subscribers.delete(id);
+    return () => {
+      this.subscribers.delete(id);
+      this.dataBuffers.delete(id);
+      this.lastUpdates.delete(id);
+    };
   }
 
   formatEventData(rawData) {
