@@ -91,9 +91,9 @@
           btn.classList.toggle('generating');
           btn.classList.toggle('not-generating');
 
-          if (!isGenerating) {
-            latencyChart.update();
-          }
+          document.dispatchEvent(new CustomEvent('generationStateChanged', {
+            detail: { isGenerating }
+          }));
         } catch (error) {
           console.error('Error toggling generation:', error);
         }

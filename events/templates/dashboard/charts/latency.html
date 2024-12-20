@@ -125,4 +125,10 @@
         });
         latencyChart.update();
     });
+
+    document.addEventListener('generationStateChanged', function(e) {
+        if (!e.detail.isGenerating) {
+            latencyChart.update();
+        }
+    });
 </script>
