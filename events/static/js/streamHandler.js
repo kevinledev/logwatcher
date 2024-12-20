@@ -24,6 +24,12 @@ class StreamHandler {
     }
   }
 
+  setInterval(seconds) {
+    this.currentInterval = seconds;
+    this.dataBuffer = []; // Clear buffer when interval changes
+    this.lastUpdate = Date.now(); // Reset timer
+  }
+
   setupSubscribers() {
     this.eventSource.addEventListener("api.request", (e) => {
       if (!isGenerating) {
@@ -38,7 +44,7 @@ class StreamHandler {
         const formattedData = this.formatEventData(rawData);
         this.dataBuffer.push(formattedData);
 
-        // Immediately notify non-buffered subscribers (like the table)
+        // Immediately notify non-buffered subscribers
         this.subscribers.forEach((sub) => {
           if (!sub.options.buffered) {
             sub.callback(formattedData);
@@ -46,9 +52,9 @@ class StreamHandler {
         });
 
         const now = Date.now();
+        // Use the configured interval for buffer timing
         if (now - this.lastUpdate >= this.currentInterval * 1000) {
           if (this.dataBuffer.length > 0) {
-            // Calculate average duration for the interval
             const avgDuration = this.dataBuffer.reduce((sum, item) => sum + item.duration, 0) / this.dataBuffer.length;
             const latestTime = this.dataBuffer[this.dataBuffer.length - 1].time;
             
@@ -62,7 +68,7 @@ class StreamHandler {
               message: formattedData.message
             };
 
-            // Notify buffered subscribers (like the chart)
+            // Notify buffered subscribers
             this.subscribers.forEach((sub) => {
               if (sub.options.buffered) {
                 sub.callback(aggregatedData);

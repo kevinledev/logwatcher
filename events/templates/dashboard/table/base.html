@@ -13,7 +13,7 @@
         <tbody>
             {% for event in events %}
             <tr>
-                <td style="width: 20%">{{ event.timestamp }}</td>
+                <td style="width: 20%">{{ event.timestamp|date:"m/d/Y, g:i:s A" }}</td>
                 <td style="width: 10%">{{ event.method }}</td>
                 <td style="width: 15%">{{ event.source }}</td>
                 <td style="width: 10%">{{ event.status_code }}</td>

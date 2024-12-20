@@ -139,13 +139,21 @@
     // Initialize
     loadHistoricalLatencyData();
 
-    // Subscribe to stream updates with buffering for the chart
+    // Subscribe to stream updates with buffering
     streamHandler.subscribe((data) => {
-        latencyChart.data.datasets[0].data.push({
-            x: data.time,
-            y: data.duration
-        });
-        latencyChart.update();
+        // Only add data points according to our selected interval
+        const intervalSeconds = parseInt(document.getElementById("interval").value);
+        const now = Date.now();
+        const lastDataPoint = latencyChart.data.datasets[0].data[latencyChart.data.datasets[0].data.length - 1];
+        
+        // If we don't have any data points yet, or if enough time has passed since the last one
+        if (!lastDataPoint || (now - lastDataPoint.x) >= intervalSeconds * 1000) {
+            latencyChart.data.datasets[0].data.push({
+                x: data.time,
+                y: data.duration
+            });
+            latencyChart.update();
+        }
     }, { buffered: true });
 
     document.addEventListener('generationStateChanged', function(e) {
