@@ -32,9 +32,11 @@
             datasets: [{
                 label: "Average Latency (ms)",
                 data: [],
-                borderColor: "rgb(75, 192, 192)",
-                backgroundColor: "rgba(75, 192, 192, 0.2)",
+                borderColor: "#2563eb",
+                backgroundColor: "rgba(37, 99, 235, 0.1)",
                 fill: true,
+                tension: 0.4,
+                borderWidth: 2
             }],
         },
         options: {
@@ -43,7 +45,20 @@
             plugins: {
                 title: {
                     display: true,
-                    text: 'API Response Latency Over Time'
+                    text: 'API Response Latency Over Time',
+                    color: '#374151',
+                    font: {
+                        size: 16,
+                        family: 'Inter, system-ui, -apple-system, sans-serif'
+                    }
+                },
+                legend: {
+                    labels: {
+                        font: {
+                            family: 'Inter, system-ui, -apple-system, sans-serif'
+                        },
+                        color: '#374151'
+                    }
                 }
             },
             scales: {
@@ -58,6 +73,15 @@
                     title: {
                         display: true,
                         text: 'Time'
+                    },
+                    grid: {
+                        color: 'rgba(107, 114, 128, 0.1)'
+                    },
+                    ticks: {
+                        color: '#6b7280',
+                        font: {
+                            family: 'Inter, system-ui, -apple-system, sans-serif'
+                        }
                     }
                 },
                 y: {
@@ -65,6 +89,15 @@
                     title: {
                         display: true,
                         text: 'Response Time (ms)'
+                    },
+                    grid: {
+                        color: 'rgba(107, 114, 128, 0.1)'
+                    },
+                    ticks: {
+                        color: '#6b7280',
+                        font: {
+                            family: 'Inter, system-ui, -apple-system, sans-serif'
+                        }
                     }
                 },
             },

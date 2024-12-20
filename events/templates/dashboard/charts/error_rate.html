@@ -32,20 +32,43 @@
             datasets: [{
                 label: "Client Errors (4xx)",
                 data: [],
-                borderColor: "rgb(255, 159, 64)",
-                backgroundColor: "rgba(255, 159, 64, 0.2)",
+                borderColor: "#f59e0b",
+                backgroundColor: "rgba(245, 158, 11, 0.1)",
                 fill: true,
+                tension: 0.4,
+                borderWidth: 2
             }, {
                 label: "Server Errors (5xx)",
                 data: [],
-                borderColor: "rgb(255, 99, 132)",
-                backgroundColor: "rgba(255, 99, 132, 0.2)",
+                borderColor: "#dc2626",
+                backgroundColor: "rgba(220, 38, 38, 0.1)",
                 fill: true,
+                tension: 0.4,
+                borderWidth: 2
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'API Error Rates Over Time',
+                    color: '#374151',
+                    font: {
+                        size: 16,
+                        family: 'Inter, system-ui, -apple-system, sans-serif'
+                    }
+                },
+                legend: {
+                    labels: {
+                        font: {
+                            family: 'Inter, system-ui, -apple-system, sans-serif'
+                        },
+                        color: '#374151'
+                    }
+                }
+            },
             scales: {
                 x: {
                     type: "realtime",
@@ -55,24 +78,28 @@
                         refresh: 1000,
                         onRefresh: () => {}
                     },
-                    title: {
-                        display: true,
-                        text: 'Time'
+                    grid: {
+                        color: 'rgba(107, 114, 128, 0.1)'
+                    },
+                    ticks: {
+                        color: '#6b7280',
+                        font: {
+                            family: 'Inter, system-ui, -apple-system, sans-serif'
+                        }
                     }
                 },
                 y: {
                     beginAtZero: true,
                     max: 100,
-                    title: {
-                        display: true,
-                        text: 'Error Rate (%)'
+                    grid: {
+                        color: 'rgba(107, 114, 128, 0.1)'
+                    },
+                    ticks: {
+                        color: '#6b7280',
+                        font: {
+                            family: 'Inter, system-ui, -apple-system, sans-serif'
+                        }
                     }
-                }
-            },
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'API Error Rates Over Time'
                 }
             }
         }
