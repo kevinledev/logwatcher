@@ -1,4 +1,5 @@
 import asyncio
+from functools import cache
 from django.shortcuts import render
 from django.http import JsonResponse, StreamingHttpResponse
 from .models import Event
@@ -15,6 +16,7 @@ from django.db.models import IntegerField
 from django.db.models.expressions import ExpressionWrapper
 from django.core.paginator import Paginator
 from asgiref.sync import sync_to_async
+from django.db import models
 
 # Global flag to control event generation
 is_generating = False
@@ -171,34 +173,209 @@ def get_historical_latency_data(request):
         ]
     })
 
+def get_error_rate_data(request):
+    interval_seconds = int(request.GET.get("interval", "60"))
+    range_minutes = int(request.GET.get('range', '15'))
+
+    now = timezone.now()
+    start_time = now - timedelta(minutes=range_minutes)
+
+    events = Event.objects.filter(timestamp__gte=start_time)
+
+    if interval_seconds < 60:
+        aggregated_data = (
+            events.annotate(
+                bucket=ExpressionWrapper(
+                    (ExtractHour('timestamp') * 3600 + 
+                     ExtractMinute('timestamp') * 60 + 
+                     ExtractSecond('timestamp')) / interval_seconds,
+                    output_field=IntegerField()
+                )
+            )
+            .values('bucket')
+            .annotate(
+                total_requests=models.Count('id'),
+                client_errors=models.Count(
+                    'id',
+                    filter=models.Q(status_code__gte=400, status_code__lt=500)
+                ),
+                server_errors=models.Count(
+                    'id',
+                    filter=models.Q(status_code__gte=500)
+                ),
+                timestamp=Min('timestamp')
+            )
+            .order_by('bucket')
+        )
+    else:
+        minutes_fraction = interval_seconds // 60
+        aggregated_data = (
+            events.annotate(
+                bucket=ExpressionWrapper(
+                    (ExtractHour('timestamp') * 60 + ExtractMinute('timestamp')) / minutes_fraction,
+                    output_field=IntegerField()
+                )
+            )
+            .values('bucket')
+            .annotate(
+                total_requests=models.Count('id'),
+                client_errors=models.Count(
+                    'id',
+                    filter=models.Q(status_code__gte=400, status_code__lt=500)
+                ),
+                server_errors=models.Count(
+                    'id',
+                    filter=models.Q(status_code__gte=500)
+                ),
+                timestamp=Min('timestamp')
+            )
+            .order_by('bucket')
+        )
+
+    return JsonResponse({
+        'client_errors': [
+            {
+                'x': entry['timestamp'].timestamp() * 1000,
+                'y': round((entry['client_errors'] / entry['total_requests']) * 100, 2) if entry['total_requests'] > 0 else 0
+            } for entry in aggregated_data
+        ],
+        'server_errors': [
+            {
+                'x': entry['timestamp'].timestamp() * 1000,
+                'y': round((entry['server_errors'] / entry['total_requests']) * 100, 2) if entry['total_requests'] > 0 else 0
+            } for entry in aggregated_data
+        ]
+    })
+
+def get_historical_error_data(request):
+    interval_seconds = int(request.GET.get("interval", "60"))
+    range_minutes = int(request.GET.get('range', '15'))
+
+    now = timezone.now()
+    start_time = now - timedelta(minutes=range_minutes)
+
+    events = Event.objects.filter(timestamp__gte=start_time)
+
+    if interval_seconds < 60:  # Sub-minute intervals (10s, 30s)
+        aggregated_data = (
+            events.annotate(
+                bucket=ExpressionWrapper(
+                    (ExtractHour('timestamp') * 3600 + 
+                     ExtractMinute('timestamp') * 60 + 
+                     ExtractSecond('timestamp')) / interval_seconds,
+                    output_field=IntegerField()
+                )
+            )
+            .values('bucket')
+            .annotate(
+                total_requests=models.Count('id'),
+                client_errors=models.Count(
+                    'id',
+                    filter=models.Q(status_code__gte=400, status_code__lt=500)
+                ),
+                server_errors=models.Count(
+                    'id',
+                    filter=models.Q(status_code__gte=500)
+                ),
+                timestamp=Min('timestamp')
+            )
+            .order_by('bucket')
+        )
+    else:  # Minute-based intervals
+        minutes_fraction = interval_seconds // 60
+        aggregated_data = (
+            events.annotate(
+                bucket=ExpressionWrapper(
+                    (ExtractHour('timestamp') * 60 + ExtractMinute('timestamp')) / minutes_fraction,
+                    output_field=IntegerField()
+                )
+            )
+            .values('bucket')
+            .annotate(
+                total_requests=models.Count('id'),
+                client_errors=models.Count(
+                    'id',
+                    filter=models.Q(status_code__gte=400, status_code__lt=500)
+                ),
+                server_errors=models.Count(
+                    'id',
+                    filter=models.Q(status_code__gte=500)
+                ),
+                timestamp=Min('timestamp')
+            )
+            .order_by('bucket')
+        )
+
+    return JsonResponse({
+        'client_errors': [
+            {
+                'x': entry['timestamp'].timestamp() * 1000,
+                'y': round((entry['client_errors'] / entry['total_requests']) * 100, 2) if entry['total_requests'] > 0 else 0
+            } for entry in aggregated_data
+        ],
+        'server_errors': [
+            {
+                'x': entry['timestamp'].timestamp() * 1000,
+                'y': round((entry['server_errors'] / entry['total_requests']) * 100, 2) if entry['total_requests'] > 0 else 0
+            } for entry in aggregated_data
+        ]
+    })
+
 async def event_stream(request):
-    """Generates and streams events directly"""
-    async def stream():
+    async def event_stream_generator():
         while True:
-            if is_generating:
-                event = await sync_to_async(generate_event)()
+            if not is_generating:
+                break
+
+            event = await sync_to_async(generate_event)()
+            
+            # Calculate error rates right here for each event
+            now = timezone.now()
+            window_start = now - timedelta(minutes=5)
+            
+            # Get window events with proper async/await
+            window_events = Event.objects.filter(timestamp__gte=window_start)
+            total_requests = await sync_to_async(window_events.count)()
+            
+            if total_requests > 0:
+                client_errors = await sync_to_async(
+                    window_events.filter(
+                        status_code__gte=400, 
+                        status_code__lt=500
+                    ).count
+                )()
                 
-                # Format event data using SSE fields
-                event_data = {
-                    'timestamp': event.timestamp.timestamp() * 1000,
-                    'method': event.method,
-                    'source': event.source, 
-                    'status_code': event.status_code,
-                    'duration_ms': event.duration_ms,
-                    'metadata': event.metadata
+                server_errors = await sync_to_async(
+                    window_events.filter(
+                        status_code__gte=500
+                    ).count
+                )()
+                
+                error_rates = {
+                    'client_error_rate': round((client_errors / total_requests) * 100, 2),
+                    'server_error_rate': round((server_errors / total_requests) * 100, 2)
                 }
-                
-                # Yield each SSE field on separate lines
-                yield f"id: {event.request_id}\n"
-                yield f"event: api.request\n"
-                yield f"data: {json.dumps(event_data)}\n\n"
-                
-                await asyncio.sleep(5)
             else:
-                await asyncio.sleep(1)
+                error_rates = {
+                    'client_error_rate': 0,
+                    'server_error_rate': 0
+                }
+
+            event_data = {
+                'timestamp': event.timestamp.isoformat(),
+                'method': event.method,
+                'source': event.source,
+                'status_code': event.status_code,
+                'duration_ms': event.duration_ms,
+                'metadata': event.metadata,
+                'error_rates': error_rates
+            }
+
+            yield f"data: {json.dumps(event_data)}\nevent: api.request\n\n"
+            await asyncio.sleep(5)
 
     response = StreamingHttpResponse(
-        streaming_content=stream(),
+        streaming_content=event_stream_generator(),
         content_type='text/event-stream'
     )
     response['Cache-Control'] = 'no-cache'

@@ -57,28 +57,7 @@
         },
     });
 
-    async function handleChartRefresh(chart) {
-        if (!isGenerating) return;
-
-        const interval = document.getElementById("interval").value;
-        const timeRange = document.getElementById("timeRange").value;
-
-        try {
-            const response = await fetch(
-                `/api/latency-data/?interval=${interval}&range=${timeRange}`
-            );
-            const data = await response.json();
-
-            chart.data.datasets[0].data.push({
-                x: Date.now(),
-                y: data.latest_latency,
-            });
-        } catch (error) {
-            console.error("Error fetching latest data:", error);
-        }
-    }
-
-    async function loadHistoricalData() {
+    async function loadHistoricalLatencyData() {
         const intervalSeconds = document.getElementById("interval").value;
         const rangeMinutes = document.getElementById("timeRange").value;
 
@@ -99,17 +78,17 @@
     document.getElementById("timeRange").addEventListener("change", (e) => {
         const rangeMinutes = parseInt(e.target.value);
         latencyChart.options.scales.x.realtime.duration = rangeMinutes * 60 * 1000;
-        loadHistoricalData();
+        loadHistoricalLatencyData();
     });
 
     document.getElementById("interval").addEventListener("change", (e) => {
         const refreshRate = REFRESH_RATES[e.target.value];
         latencyChart.options.scales.x.realtime.refresh = refreshRate;
-        loadHistoricalData();
+        loadHistoricalLatencyData();
     });
 
     // Initialize
-    loadHistoricalData();
+    loadHistoricalLatencyData();
 
     // Subscribe to stream updates
     streamHandler.subscribe((data) => {

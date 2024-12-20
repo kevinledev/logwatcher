@@ -13,8 +13,7 @@ urlpatterns = [
     path('stream/events/', views.event_stream, name='event_stream'),
     
     # Data API endpoints
-    path('api/latency-data/', views.get_latency_data, name='latency_data'),
     path('api/historical-latency-data/', views.get_historical_latency_data, name='historical_latency'),
     path('api/event-rows/', views.table_rows, name='table_rows'),
-    
+    path('api/historical-error-data/', views.get_historical_error_data, name='historical_error_data'),
 ] 

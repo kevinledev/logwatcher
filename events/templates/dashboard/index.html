@@ -76,6 +76,7 @@
 
     <!-- Charts -->
     {% include "dashboard/charts/latency.html" %}
+    {% include "dashboard/charts/error_rate.html" %}
 
     <!-- Event Table -->
     {% include "dashboard/table/base.html" %}
@@ -89,6 +90,12 @@
         try {
           await fetch(endpoint);
           isGenerating = !isGenerating;
+
+          if (isGenerating) {
+            streamHandler.connect();
+          } else {
+            streamHandler.disconnect();
+          }
 
           btn.textContent = isGenerating ? 'Stop Generation' : 'Start Generation';
           btn.classList.toggle('generating');

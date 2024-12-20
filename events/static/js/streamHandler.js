@@ -1,29 +1,52 @@
 class StreamHandler {
   constructor() {
-    this.eventSource = new EventSource("/stream/events/");
     this.subscribers = new Map();
-
-    // Handle connection errors/retries
-    this.eventSource.onerror = () => {
-      console.log("SSE connection error, attempting to reconnect...");
-    };
+    this.eventSource = null;
   }
 
-  subscribe(callback) {
-    // Subscribe to stream events
+  connect() {
+    if (!this.eventSource) {
+      this.eventSource = new EventSource("/stream/events/");
+      this.eventSource.onerror = () => {
+        console.log("SSE connection error, attempting to reconnect...");
+      };
+      this.setupSubscribers();
+    }
+  }
+
+  disconnect() {
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
+  }
+
+  setupSubscribers() {
     this.eventSource.addEventListener("api.request", (e) => {
-      if (!isGenerating) return;
+      if (!isGenerating) {
+        this.disconnect();
+        return;
+      }
 
       try {
         const rawData = JSON.parse(e.data);
         if (!rawData.timestamp) return;
 
         const formattedData = this.formatEventData(rawData);
-        callback(formattedData);
+        this.subscribers.forEach(callback => callback(formattedData));
       } catch (error) {
         console.error("Error processing stream data:", error);
       }
     });
+  }
+
+  subscribe(callback) {
+    const id = Math.random().toString(36);
+    this.subscribers.set(id, callback);
+    if (isGenerating && !this.eventSource) {
+      this.connect();
+    }
+    return () => this.subscribers.delete(id);
   }
 
   formatEventData(rawData) {

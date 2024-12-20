@@ -1,0 +1,155 @@
+<div style="width: 800px; height: 400px">
+    <canvas id="errorRateChart"></canvas>
+</div>
+
+<!-- Add time range controls -->
+<select id="errorTimeRange">
+    <option value="5">Last 5 minutes</option>
+    <option value="15">Last 15 minutes</option>
+    <option value="60">Last hour</option>
+    <option value="360">Last 6 hours</option>
+</select>
+
+<select id="errorInterval">
+    <option value="10">10 seconds</option>
+    <option value="30">30 seconds</option>
+    <option value="60">1 minute</option>
+    <option value="300">5 minutes</option>
+</select>
+
+<script>
+    const ERROR_REFRESH_RATES = {
+        10: 2000,
+        30: 5000,
+        60: 10000,
+    };
+
+    // Chart setup
+    const errorCtx = document.getElementById("errorRateChart").getContext("2d");
+    const errorRateChart = new Chart(errorCtx, {
+        type: "line",
+        data: {
+            datasets: [{
+                label: "Client Errors (4xx)",
+                data: [],
+                borderColor: "rgb(255, 159, 64)",
+                backgroundColor: "rgba(255, 159, 64, 0.2)",
+                fill: true,
+            }, {
+                label: "Server Errors (5xx)",
+                data: [],
+                borderColor: "rgb(255, 99, 132)",
+                backgroundColor: "rgba(255, 99, 132, 0.2)",
+                fill: true,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: "realtime",
+                    realtime: {
+                        duration: 300000,
+                        delay: 0,
+                        refresh: 1000,
+                        onRefresh: () => {}  // Empty callback, we'll handle updates separately
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Error Rate (%)'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Error Rates Over Time'
+                }
+            }
+        }
+    });
+
+    // Initialize with historical data
+    loadHistoricalErrorData();
+
+    // Event listeners for controls
+    document.getElementById("errorTimeRange").addEventListener("change", (e) => {
+        const rangeMinutes = parseInt(e.target.value);
+        errorRateChart.options.scales.x.realtime.duration = rangeMinutes * 60 * 1000;
+        loadHistoricalErrorData();
+    });
+
+    document.getElementById("errorInterval").addEventListener("change", (e) => {
+        const refreshRate = ERROR_REFRESH_RATES[e.target.value];
+        errorRateChart.options.scales.x.realtime.refresh = refreshRate;
+        loadHistoricalErrorData();
+    });
+
+    // Keep track of requests in the current window
+    let requestWindow = [];
+    
+    // Subscribe to stream updates
+    streamHandler.subscribe((data) => {
+        const now = data.time.getTime();
+        
+        // Add new request to window
+        requestWindow.push({
+            timestamp: now,
+            isClientError: data.status >= 400 && data.status < 500,
+            isServerError: data.status >= 500
+        });
+
+        // Remove old requests outside the window
+        requestWindow = requestWindow.filter(req => 
+            now - req.timestamp <= errorRateChart.options.scales.x.realtime.duration
+        );
+
+        // Calculate error rates
+        const totalRequests = requestWindow.length;
+        if (totalRequests > 0) {
+            const clientErrors = requestWindow.filter(req => req.isClientError).length;
+            const serverErrors = requestWindow.filter(req => req.isServerError).length;
+
+            errorRateChart.data.datasets[0].data.push({
+                x: now,
+                y: (clientErrors / totalRequests) * 100
+            });
+
+            errorRateChart.data.datasets[1].data.push({
+                x: now,
+                y: (serverErrors / totalRequests) * 100
+            });
+
+            errorRateChart.update();
+        }
+    });
+
+    document.addEventListener('generationStateChanged', function(e) {
+        if (!e.detail.isGenerating) {
+            errorRateChart.update();
+        }
+    });
+
+    async function loadHistoricalErrorData() {
+        const intervalSeconds = document.getElementById("errorInterval").value;
+        const rangeMinutes = document.getElementById("errorTimeRange").value;
+
+        try {
+            const response = await fetch(
+                `/api/historical-error-data/?interval=${intervalSeconds}&range=${rangeMinutes}`
+            );
+            const data = await response.json();
+            
+            errorRateChart.data.datasets[0].data = data.client_errors;
+            errorRateChart.data.datasets[1].data = data.server_errors;
+            errorRateChart.update();
+        } catch (error) {
+            console.error("Error loading historical error data:", error);
+        }
+    }
+</script> 
