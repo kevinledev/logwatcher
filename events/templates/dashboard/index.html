@@ -81,7 +81,7 @@
     <script>
       async function toggleGeneration() {
         const btn = document.getElementById('generateBtn');
-        const endpoint = isGenerating ? '/generator/stop/' : '/generator/start/';
+        const endpoint = isGenerating ? '/stream/stop/' : '/stream/start/';
 
         try {
           await fetch(endpoint);

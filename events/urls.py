@@ -5,15 +5,16 @@ urlpatterns = [
     # Main dashboard
     path('', views.dashboard, name='dashboard'),
     
-    # Generator endpoints
-    path('generator/start/', views.start_generation, name='generator_start'),
-    path('generator/stop/', views.stop_generation, name='generator_stop'),
+    # Stream control endpoints
+    path('stream/start/', views.start_generation, name='stream_start'),
+    path('stream/stop/', views.stop_generation, name='stream_stop'),
+    
+    # Stream endpoint
+    path('stream/events/', views.event_stream, name='event_stream'),
     
     # Data API endpoints
     path('api/latency-data/', views.get_latency_data, name='latency_data'),
     path('api/historical-latency-data/', views.get_historical_latency_data, name='historical_latency'),
     path('api/event-rows/', views.table_rows, name='table_rows'),
     
-    # Stream endpoint
-    path('stream/events/', views.event_stream, name='event_stream'),
 ] 
