@@ -19,21 +19,18 @@ from asgiref.sync import sync_to_async
 # Global flag to control event generation
 is_generating = False
 
-def monitor_dashboard(request):
+def dashboard(request):
     """Main view that renders the monitoring dashboard"""
-    events = Event.objects.all().order_by("-timestamp")
-    return render(request, "events_list.html", {
+    return render(request, "dashboard/index.html", {
         "is_generating": is_generating,
     })
 
-
-def event_rows(request):
-    """HTMX endpoint for paginated event rows"""
+def table_rows(request):
+    """HTMX endpoint for paginated table rows"""
     page_number = request.GET.get("page", 1)
     paginator = Paginator(Event.objects.all().order_by("-timestamp"), 10)
     events = paginator.get_page(page_number)
-    return render(request, "event_rows.html", {"events": events})
-
+    return render(request, "dashboard/table/rows.html", {"events": events})
 
 def generate_event():
     """Creates a single event"""
@@ -89,7 +86,6 @@ def generate_event():
 
     return event
 
-
 def generate_events():
     """Background thread that generates events while is_generating is True"""
     global is_generating
@@ -97,20 +93,17 @@ def generate_events():
         generate_event()
         time.sleep(5)
 
-
 def start_generation(request):
     """API endpoint to start event generation"""
     global is_generating
     is_generating = True
     return JsonResponse({"status": "started"})
 
-
 def stop_generation(request):
     """API endpoint to stop event generation"""
     global is_generating
     is_generating = False
     return JsonResponse({"status": "stopped"})
-
 
 def get_latency_data(request):
     window_seconds = int(request.GET.get('interval', '60'))
@@ -125,7 +118,6 @@ def get_latency_data(request):
     return JsonResponse({
         'latest_latency': round(latest_data['avg_latency'], 2) if latest_data['avg_latency'] else 0
     })
-
 
 def get_historical_latency_data(request):
     interval_seconds = int(request.GET.get("interval", "60"))
@@ -178,7 +170,6 @@ def get_historical_latency_data(request):
             } for entry in aggregated_data
         ]
     })
-
 
 async def event_stream(request):
     """Generates and streams events directly"""

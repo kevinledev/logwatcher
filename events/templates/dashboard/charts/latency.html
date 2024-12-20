@@ -1,0 +1,128 @@
+<div style="width: 800px; height: 400px">
+    <canvas id="latencyChart"></canvas>
+</div>
+
+<!-- Add time range controls -->
+<select id="timeRange">
+    <option value="5">Last 5 minutes</option>
+    <option value="15">Last 15 minutes</option>
+    <option value="60">Last hour</option>
+    <option value="360">Last 6 hours</option>
+</select>
+
+<select id="interval">
+    <option value="10">10 seconds</option>
+    <option value="30">30 seconds</option>
+    <option value="60">1 minute</option>
+    <option value="300">5 minutes</option>
+</select>
+
+<script>
+    const REFRESH_RATES = {
+        10: 2000,
+        30: 5000,
+        60: 10000,
+    };
+
+    // Chart setup and configuration
+    const ctx = document.getElementById("latencyChart").getContext("2d");
+    const latencyChart = new Chart(ctx, {
+        type: "line",
+        data: {
+            datasets: [{
+                label: "Average Latency (ms)",
+                data: [],
+                borderColor: "rgb(75, 192, 192)",
+                backgroundColor: "rgba(75, 192, 192, 0.2)",
+                fill: true,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: "realtime",
+                    realtime: {
+                        duration: 300000,
+                        delay: 0,
+                        refresh: 1000,
+                        onRefresh: () => {},
+                    },
+                },
+                y: {
+                    beginAtZero: true,
+                },
+            },
+        },
+    });
+
+    async function handleChartRefresh(chart) {
+        if (!isGenerating) return;
+
+        const interval = document.getElementById("interval").value;
+        const timeRange = document.getElementById("timeRange").value;
+
+        try {
+            const response = await fetch(
+                `/api/latency-data/?interval=${interval}&range=${timeRange}`
+            );
+            const data = await response.json();
+
+            chart.data.datasets[0].data.push({
+                x: Date.now(),
+                y: data.latest_latency,
+            });
+        } catch (error) {
+            console.error("Error fetching latest data:", error);
+        }
+    }
+
+    async function loadHistoricalData() {
+        const intervalSeconds = document.getElementById("interval").value;
+        const rangeMinutes = document.getElementById("timeRange").value;
+
+        fetch(
+            `/api/historical-latency-data/?interval=${intervalSeconds}&range=${rangeMinutes}`
+        )
+            .then((response) => response.json())
+            .then((data) => {
+                latencyChart.data.datasets[0].data = data.data;
+                latencyChart.update();
+            })
+            .catch((error) => {
+                console.error("Error loading historical data:", error);
+            });
+    }
+
+    // Event listeners
+    document.getElementById("timeRange").addEventListener("change", (e) => {
+        const rangeMinutes = parseInt(e.target.value);
+        latencyChart.options.scales.x.realtime.duration = rangeMinutes * 60 * 1000;
+        loadHistoricalData();
+    });
+
+    document.getElementById("interval").addEventListener("change", (e) => {
+        const refreshRate = REFRESH_RATES[e.target.value];
+        latencyChart.options.scales.x.realtime.refresh = refreshRate;
+        loadHistoricalData();
+    });
+
+    // Initialize
+    loadHistoricalData();
+
+    // Add chart update listener to existing event source
+    eventSource.addEventListener('api.request', function(e) {
+        if (!isGenerating) return;
+
+        const data = JSON.parse(e.data);
+        if (!data.timestamp) return;
+
+        // Update chart
+        latencyChart.data.datasets[0].data.push({
+            x: data.timestamp,
+            y: data.duration_ms
+        });
+        latencyChart.update();
+    });
+</script>

@@ -21,7 +21,7 @@
 <tr id="pagination-row">
     <td colspan="6" style="text-align: center">
         {% if events.has_previous %}
-        <button hx-get="{% url 'event_rows' %}?page={{ events.previous_page_number }}"
+        <button hx-get="{% url 'table_rows' %}?page={{ events.previous_page_number }}"
                 hx-target="tbody"
                 class="button">
             Previous
@@ -31,7 +31,7 @@
         <span>Page {{ events.number }} of {{ events.paginator.num_pages }}</span>
 
         {% if events.has_next %}
-        <button hx-get="{% url 'event_rows' %}?page={{ events.next_page_number }}"
+        <button hx-get="{% url 'table_rows' %}?page={{ events.next_page_number }}"
                 hx-target="tbody"
                 class="button">
             Next
