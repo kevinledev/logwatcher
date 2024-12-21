@@ -1,25 +1,33 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html data-bs-theme="light">
+<html lang="en" data-bs-core="modern" data-bs-theme="light">
   <head>
     <title>Event Log</title>
+    <link href="{% static 'css/halfmoon.min.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/halfmoon.modern.css' %}" rel="stylesheet" />
+    
+    <!-- Your other scripts -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.1/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0/dist/chartjs-plugin-streaming.min.js"></script>
     <script src="{% static 'js/StreamHandler.js' %}"></script>
-    <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.1/css/halfmoon.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/halfmoon@2.0.1/js/halfmoon.min.js"></script>
+
+    
+ 
+    <!-- Halfmoon modern core theme -->
+    <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.2/css/cores/halfmoon.modern.css" rel="stylesheet" integrity="sha256-DD6elX+jPmbFYPsGvzodUv2+9FHkxHlVtQi0/RJVULs=" crossorigin="anonymous">
+ 
     <script>
       let isGenerating = {{ is_generating|lower }};
       const streamHandler = new StreamHandler();
     </script>
   </head>
-  <body>
+  <body class="with-custom-webkit-scrollbars with-custom-css-scrollbars">
     <div>
-      <nav class="navbar">
-        <div class="container-fluid">
+      <nav class="navbar navbar-expand-md">
+        <div class="container-fluid px-4 py-2">
           <h1 class="m-0">Event Log</h1>
           <button
             id="generateBtn"
