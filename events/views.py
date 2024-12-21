@@ -30,7 +30,7 @@ def dashboard(request):
 def table_rows(request):
     """HTMX endpoint for paginated table rows"""
     page_number = request.GET.get("page", 1)
-    paginator = Paginator(Event.objects.all().order_by("-timestamp"), 10)
+    paginator = Paginator(Event.objects.all().order_by("-timestamp"), 15)
     events = paginator.get_page(page_number)
     return render(request, "dashboard/table/base.html", {"events": events})
 

@@ -1,5 +1,5 @@
 <div class="card-body table-responsive">
-  <table class="table table-hover">
+  <table class="table table-hover table-sm">
     <thead>
       <tr>
         <th style="width: 20%">Timestamp</th>
@@ -20,7 +20,7 @@
         <td style="width: 15%">{{ event.duration_ms }}ms</td>
         <td style="width: 30%">
           {% if event.status_code >= 400 %} {{ event.metadata.error_message }}
-          {% else %} Success {% endif %}
+          {% endif %}
         </td>
       </tr>
       {% endfor %}
@@ -128,7 +128,7 @@
 
       // Keep pagination count correct
       const rows = tbody.querySelectorAll("tr");
-      if (rows.length > 10) {
+      if (rows.length > 15) {
         rows[rows.length - 1].remove();
       }
     },

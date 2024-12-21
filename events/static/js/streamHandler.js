@@ -128,7 +128,7 @@ class StreamHandler {
       status: rawData.status_code,
       isError: rawData.status_code >= 400,
       message:
-        rawData.status_code >= 400 ? rawData.metadata.error_message : "Success",
+        rawData.status_code >= 400 ? rawData.metadata.error_message : "",
     };
   }
 }
