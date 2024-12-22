@@ -26,15 +26,28 @@
   </head>
   <body class="with-custom-webkit-scrollbars with-custom-css-scrollbars">
     <div>
-      <nav class="navbar navbar-expand-md">
+      <nav class="navbar expand-md sticky-top">
         <div class="container-fluid px-4 py-2">
-          <h1 class="m-0">Event Log</h1>
-          <button
-            id="generateBtn"
-            class="btn w-full {% if is_generating %}btn-danger{% else %}btn-primary{% endif %}"
-            onclick="toggleGeneration()"
-            >{% if is_generating %}Stop Generation{% else %}Start Generation{% endif %}
-          </button>
+          <span>Log Watcher</span>
+          <div class="d-flex align-items-center gap-2">
+            <!-- Live Indicator -->
+            <div id="liveIndicator">
+              <span class="badge text-bg-light d-flex align-items-center">
+                {% if is_generating %}
+                  <span class="spinner-grow spinner-grow-sm me-1 text-success" role="status" aria-hidden="true"></span>
+                {% else %}
+                  <span class="me-1 text-danger">●</span>
+                {% endif %}
+                {% if is_generating %}Live{% else %}Stopped{% endif %}
+              </span>
+            </div>
+            <button
+              id="generateBtn"
+              class="btn w-full {% if is_generating %}btn-danger{% else %}btn-primary{% endif %}"
+              onclick="toggleGeneration()"
+              >{% if is_generating %}Stop Stream{% else %}Start Stream{% endif %}
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -73,6 +86,7 @@
     <script>
       async function toggleGeneration() {
         const btn = document.getElementById('generateBtn');
+        const liveIndicator = document.getElementById('liveIndicator');
         const endpoint = isGenerating ? '/stream/stop/' : '/stream/start/';
 
         try {
@@ -81,11 +95,13 @@
 
           if (isGenerating) {
             streamHandler.connect();
+            liveIndicator.querySelector('.badge').innerHTML = '<span class="spinner-grow spinner-grow-sm me-1 text-success" role="status" aria-hidden="true"></span> Live';
           } else {
             streamHandler.disconnect();
+            liveIndicator.querySelector('.badge').innerHTML = '<span class="me-1 text-danger">●</span> Stopped';
           }
 
-          btn.textContent = isGenerating ? 'Stop Generation' : 'Start Generation';
+          btn.textContent = isGenerating ? 'Stop Stream' : 'Start Stream';
           btn.classList.toggle('btn-danger');
           btn.classList.toggle('btn-primary');
 
@@ -99,3 +115,13 @@
     </script>
   </body>
 </html>
+
+
+<style>
+  .navbar{
+    background-color: hsla(var(--bs-body-bg-hsl), 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: var(--bs-border-width) solid var(--bs-content-border-color);
+  }
+</style>
