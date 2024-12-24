@@ -39,13 +39,20 @@ class StreamHandler {
     console.log('[StreamHandler] Disconnecting...');
     if (this.eventSource) {
         try {
+            // First close the EventSource
+            this.eventSource.close();
+            this.eventSource = null;
+            console.log('[StreamHandler] EventSource closed');
+            
+            // Then tell the server to stop
             const response = await fetch('/stream/stop/');
             const data = await response.json();
             console.log('[StreamHandler] Stop request response:', data);
             
-            this.eventSource.close();
-            this.eventSource = null;
-            console.log('[StreamHandler] EventSource closed');
+            // Clear all subscribers and buffers
+            this.subscribers.clear();
+            this.dataBuffers.clear();
+            this.lastUpdates.clear();
         } catch (error) {
             console.error('[StreamHandler] Error stopping stream:', error);
         }
@@ -64,74 +71,38 @@ class StreamHandler {
 
   setupSubscribers() {
     console.log('[StreamHandler] Setting up event listeners...');
-    this.eventSource.addEventListener("api.request", (e) => {
-      console.log('[StreamHandler] Received api.request event');
-      
-      if (!isGenerating) {
-        console.log('[StreamHandler] Generation stopped, disconnecting');
-        this.disconnect();
-        return;
-      }
+    
+    this.eventSource.addEventListener("api.request", async (e) => {
+        console.log('[StreamHandler] Received api.request event');
+        
+        try {
+            const rawData = JSON.parse(e.data);
+            console.log('[StreamHandler] Parsed event data:', rawData);
 
-      try {
-        const rawData = JSON.parse(e.data);
-        console.log('[StreamHandler] Parsed event data:', rawData);
+            if (!rawData.timestamp) {
+                console.warn('[StreamHandler] Missing timestamp in data');
+                return;
+            }
 
-        if (!rawData.timestamp) {
-          console.warn('[StreamHandler] Missing timestamp in data');
-          return;
+            if (!isGenerating) {
+                console.log('[StreamHandler] Generation stopped, disconnecting');
+                await this.disconnect();
+                return;
+            }
+
+            const formattedData = this.formatEventData(rawData);
+            console.log('[StreamHandler] Formatted data:', formattedData);
+
+            this.subscribers.forEach((subscriber) => {
+                if (typeof subscriber.callback === 'function') {
+                    subscriber.callback(formattedData);
+                } else {
+                    console.warn('[StreamHandler] Invalid subscriber callback');
+                }
+            });
+        } catch (error) {
+            console.error('[StreamHandler] Error processing stream data:', error);
         }
-
-        const formattedData = this.formatEventData(rawData);
-        console.log('[StreamHandler] Formatted data:', formattedData);
-
-        this.subscribers.forEach((sub, id) => {
-          console.log(`[StreamHandler] Processing subscriber ${id}`);
-          if (sub.options.buffered) {
-            if (!this.dataBuffers.has(id)) {
-              this.dataBuffers.set(id, [formattedData]);
-              this.lastUpdates.set(id, Date.now());
-              return;
-            }
-
-            const buffer = this.dataBuffers.get(id);
-            buffer.push(formattedData);
-
-            const now = Date.now();
-            const lastUpdate = this.lastUpdates.get(id);
-            const interval = sub.interval * 1000;
-            const timeSinceLastUpdate = now - lastUpdate;
-
-            if (timeSinceLastUpdate >= interval || buffer.length === 1) {
-              const intervals = Math.floor(timeSinceLastUpdate / interval);
-              this.lastUpdates.set(id, lastUpdate + intervals * interval);
-              
-              if (buffer.length > 0) {
-                const avgDuration = buffer.reduce((sum, item) => sum + item.duration, 0) / buffer.length;
-                const latestTime = buffer[buffer.length - 1].time;
-
-                const aggregatedData = {
-                  time: latestTime,
-                  duration: avgDuration,
-                  method: formattedData.method,
-                  source: formattedData.source,
-                  status: formattedData.status,
-                  isError: formattedData.isError,
-                  message: formattedData.message
-                };
-
-                sub.callback(aggregatedData);
-                this.dataBuffers.set(id, []);
-                this.lastUpdates.set(id, now);
-              }
-            }
-          } else {
-            sub.callback(formattedData);
-          }
-        });
-      } catch (error) {
-        console.error('[StreamHandler] Error processing stream data:', error);
-      }
     });
   }
 

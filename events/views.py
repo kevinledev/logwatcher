@@ -119,8 +119,12 @@ def stop_generation(request):
     """API endpoint to stop event generation"""
     global is_generating
     logger.info("Stop generation requested")
+    
+    # Force close any existing connections
     is_generating = False
-    cache.set('is_generating', False)
+    cache.delete('is_generating')  # Remove from cache completely
+    cache.set('is_generating', False)  # Set new value
+    
     logger.info(f"Generation stopped. Cache state: {cache.get('is_generating')}")
     return JsonResponse({"status": "stopped"})
 
@@ -341,7 +345,17 @@ def get_historical_error_data(request):
 async def event_stream(request):
     logger.info(f"SSE connection attempted. Current generation state: {cache.get('is_generating')}")
     global is_generating
-    is_generating = cache.get('is_generating', False)
+    
+    # Double check the state
+    cache_state = cache.get('is_generating', False)
+    if not cache_state:
+        logger.info("Stream requested but generation is stopped")
+        return StreamingHttpResponse(
+            content_type='text/event-stream',
+            streaming_content=iter([f"data: {json.dumps({'error': 'Generation stopped'})}\n\n"])
+        )
+    
+    is_generating = cache_state
     try:
         async def event_stream_generator():
             logger.info("Starting event stream generator")
