@@ -1,98 +1,89 @@
 class StreamHandler {
   constructor() {
+    console.log('[StreamHandler] Initializing...');
     this.subscribers = new Map();
     this.eventSource = null;
     this.dataBuffers = new Map();
     this.lastUpdates = new Map();
-    this.defaultInterval = 10;
+    console.log('[StreamHandler] Initialized successfully');
   }
 
   connect() {
+    console.log('[StreamHandler] Attempting to connect...');
     if (!this.eventSource) {
-      this.eventSource = new EventSource("/stream/events/");
-      this.eventSource.onerror = () => {
-        console.log("SSE connection error, attempting to reconnect...");
-      };
-      this.setupSubscribers();
+        try {
+            this.eventSource = new EventSource("/stream/events/");
+            console.log('[StreamHandler] EventSource created');
+            
+            this.eventSource.onopen = () => {
+                console.log('[StreamHandler] Connection opened successfully');
+            };
+
+            this.eventSource.onerror = (error) => {
+                console.error('[StreamHandler] Connection error:', error);
+                if (!isGenerating) {
+                    console.log('[StreamHandler] Generation stopped, closing connection');
+                    this.disconnect();
+                    return;
+                }
+                console.log('[StreamHandler] Connection state:', this.eventSource.readyState);
+            };
+
+            this.setupSubscribers();
+        } catch (error) {
+            console.error('[StreamHandler] Failed to create EventSource:', error);
+        }
     }
   }
 
-  disconnect() {
+  async disconnect() {
+    console.log('[StreamHandler] Disconnecting...');
     if (this.eventSource) {
-      this.eventSource.close();
-      this.eventSource = null;
+        try {
+            // First close the EventSource
+            this.eventSource.close();
+            this.eventSource = null;
+            console.log('[StreamHandler] EventSource closed');
+            
+            // Then tell the server to stop
+            const response = await fetch('/stream/stop/');
+            const data = await response.json();
+            console.log('[StreamHandler] Stop request response:', data);
+            
+            // Clear all subscribers and buffers
+            this.subscribers.clear();
+            this.dataBuffers.clear();
+            this.lastUpdates.clear();
+        } catch (error) {
+            console.error('[StreamHandler] Error stopping stream:', error);
+        }
     }
-  }
-
-  setInterval(seconds, subscriberId) {
-    const lastUpdate = this.lastUpdates.get(subscriberId) || Date.now();
-    
-    const timeSinceLastUpdate = Date.now() - lastUpdate;
-    const remainingTime = seconds * 1000 - (timeSinceLastUpdate % (seconds * 1000));
-    
-    this.dataBuffers.set(subscriberId, []);
-    this.lastUpdates.set(subscriberId, lastUpdate + (timeSinceLastUpdate - remainingTime));
   }
 
   setupSubscribers() {
-    this.eventSource.addEventListener("api.request", (e) => {
-      if (!isGenerating) {
-        this.disconnect();
-        return;
-      }
+    console.log('[StreamHandler] Setting up event listeners...');
+    
+    this.eventSource.addEventListener("api.request", async (e) => {
+        const receiveTime = Date.now();
+        console.log('[StreamHandler] Received api.request event at:', receiveTime);
+        
+        try {
+            const rawData = JSON.parse(e.data);
+            console.log('[StreamHandler] Server generated at:', rawData.generated_at);
+            console.log('[StreamHandler] Network latency:', receiveTime - rawData.generated_at, 'ms');
 
-      try {
-        const rawData = JSON.parse(e.data);
-        if (!rawData.timestamp) return;
+            const formattedData = this.formatEventData(rawData);
+            console.log('[StreamHandler] Data formatted at:', Date.now());
 
-        const formattedData = this.formatEventData(rawData);
-
-        this.subscribers.forEach((sub, id) => {
-          if (sub.options.buffered) {
-            if (!this.dataBuffers.has(id)) {
-              this.dataBuffers.set(id, [formattedData]);
-              this.lastUpdates.set(id, Date.now());
-              return;
-            }
-
-            const buffer = this.dataBuffers.get(id);
-            buffer.push(formattedData);
-
-            const now = Date.now();
-            const lastUpdate = this.lastUpdates.get(id);
-            const interval = sub.interval * 1000;
-            const timeSinceLastUpdate = now - lastUpdate;
-
-            if (timeSinceLastUpdate >= interval || buffer.length === 1) {
-              const intervals = Math.floor(timeSinceLastUpdate / interval);
-              this.lastUpdates.set(id, lastUpdate + intervals * interval);
-              
-              if (buffer.length > 0) {
-                const avgDuration = buffer.reduce((sum, item) => sum + item.duration, 0) / buffer.length;
-                const latestTime = buffer[buffer.length - 1].time;
-
-                const aggregatedData = {
-                  time: latestTime,
-                  duration: avgDuration,
-                  method: formattedData.method,
-                  source: formattedData.source,
-                  status: formattedData.status,
-                  isError: formattedData.isError,
-                  message: formattedData.message
-                };
-
-                sub.callback(aggregatedData);
-                this.dataBuffers.set(id, []);
-                this.lastUpdates.set(id, now);
-              }
-            }
-          } else {
-            sub.callback(formattedData);
-          }
-        });
-      } catch (error) {
-        console.error("Error processing stream data:", error);
-      }
+            this.subscribers.forEach((subscriber) => {
+                console.log('[StreamHandler] Processing subscriber at:', Date.now());
+                if (typeof subscriber.callback === 'function') {
+                    subscriber.callback(formattedData);
+                }
+            });
+        } catch (error) {
+            console.error('[StreamHandler] Error processing stream data:', error);
+        }
     });
   }
 
@@ -101,7 +92,6 @@ class StreamHandler {
     this.subscribers.set(id, { 
       callback, 
       options,
-      interval: this.defaultInterval
     });
     
     if (options.buffered) {
