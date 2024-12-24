@@ -97,7 +97,7 @@
             streamHandler.connect();
             liveIndicator.querySelector('.badge').innerHTML = '<span class="spinner-grow spinner-grow-sm me-1 text-success" role="status" aria-hidden="true"></span> Live';
           } else {
-            streamHandler.disconnect();
+            await streamHandler.disconnect();
             liveIndicator.querySelector('.badge').innerHTML = '<span class="me-1 text-danger">●</span> Stopped';
           }
 

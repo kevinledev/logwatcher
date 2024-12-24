@@ -85,6 +85,9 @@ async def generate_event_async():
 
 def dashboard(request):
     """Main view that renders the monitoring dashboard"""
+    global is_generating
+    # Sync the global variable with cache
+    is_generating = cache.get('is_generating', False)
     return render(request, "dashboard/index.html", {
         "is_generating": is_generating,
     })
@@ -107,6 +110,7 @@ def start_generation(request):
     """API endpoint to start event generation"""
     global is_generating
     is_generating = True
+    cache.set('is_generating', True)
     return JsonResponse({"status": "started"})
 
 def stop_generation(request):
