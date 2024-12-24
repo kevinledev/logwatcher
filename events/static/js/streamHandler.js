@@ -75,31 +75,21 @@ class StreamHandler {
     console.log('[StreamHandler] Setting up event listeners...');
     
     this.eventSource.addEventListener("api.request", async (e) => {
-        console.log('[StreamHandler] Received api.request event');
+        const receiveTime = Date.now();
+        console.log('[StreamHandler] Received api.request event at:', receiveTime);
         
         try {
             const rawData = JSON.parse(e.data);
-            console.log('[StreamHandler] Parsed event data:', rawData);
-
-            if (!rawData.timestamp) {
-                console.warn('[StreamHandler] Missing timestamp in data');
-                return;
-            }
-
-            if (!isGenerating) {
-                console.log('[StreamHandler] Generation stopped, disconnecting');
-                await this.disconnect();
-                return;
-            }
+            console.log('[StreamHandler] Server generated at:', rawData.generated_at);
+            console.log('[StreamHandler] Network latency:', receiveTime - rawData.generated_at, 'ms');
 
             const formattedData = this.formatEventData(rawData);
-            console.log('[StreamHandler] Formatted data:', formattedData);
+            console.log('[StreamHandler] Data formatted at:', Date.now());
 
             this.subscribers.forEach((subscriber) => {
+                console.log('[StreamHandler] Processing subscriber at:', Date.now());
                 if (typeof subscriber.callback === 'function') {
                     subscriber.callback(formattedData);
-                } else {
-                    console.warn('[StreamHandler] Invalid subscriber callback');
                 }
             });
         } catch (error) {

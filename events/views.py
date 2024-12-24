@@ -353,6 +353,7 @@ async def event_stream(request):
                         logger.info("Generation stopped, breaking stream")
                         break
 
+                    generation_start = time.time()
                     logger.info("Generating event...")
                     event = await generate_event_async()
                     if not event:
@@ -365,9 +366,11 @@ async def event_stream(request):
                         'source': event.source,
                         'status_code': event.status_code,
                         'duration_ms': event.duration_ms,
-                        'metadata': event.metadata
+                        'metadata': event.metadata,
+                        'generated_at': time.time() * 1000  # Add server timestamp in ms
                     }
 
+                    logger.info(f"Event generated in {(time.time() - generation_start) * 1000}ms")
                     yield f"data: {json.dumps(event_data)}\nevent: api.request\n\n"
                     await asyncio.sleep(5)
                 except Exception as e:

@@ -134,19 +134,25 @@
 
     // Subscribe to stream updates with buffering
     streamHandler.subscribe((data) => {
-        // Only add data points according to our selected interval
+        const processStart = Date.now();
+        console.log('[LatencyChart] Processing data at:', processStart);
+        
         const selectedInterval = document.querySelector('input[name="latency-interval-group"]:checked');
         const intervalSeconds = selectedInterval ? parseInt(selectedInterval.value) : 60;
         const now = Date.now();
         const lastDataPoint = latencyChart.data.datasets[0].data[latencyChart.data.datasets[0].data.length - 1];
         
-        // If we don't have any data points yet, or if enough time has passed since the last one
+        console.log('[LatencyChart] Time since last update:', lastDataPoint ? now - lastDataPoint.x : 'First update');
+        
         if (!lastDataPoint || (now - lastDataPoint.x) >= intervalSeconds * 1000) {
             latencyChart.data.datasets[0].data.push({
                 x: data.time,
                 y: data.duration
             });
             latencyChart.update('quiet');
+            console.log('[LatencyChart] Updated at:', Date.now(), 'Processing took:', Date.now() - processStart, 'ms');
+        } else {
+            console.log('[LatencyChart] Update skipped, not enough time elapsed');
         }
     }, { buffered: true });
 
