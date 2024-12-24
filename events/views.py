@@ -24,22 +24,6 @@ is_generating = False
 
 logger = logging.getLogger(__name__)
 
-# Create a sync_to_async version of generate_event
-generate_event_async = sync_to_async(generate_event)
-
-def dashboard(request):
-    """Main view that renders the monitoring dashboard"""
-    return render(request, "dashboard/index.html", {
-        "is_generating": is_generating,
-    })
-
-def table_rows(request):
-    """HTMX endpoint for paginated table rows"""
-    page_number = request.GET.get("page", 1)
-    paginator = Paginator(Event.objects.all().order_by("-timestamp"), 15)
-    events = paginator.get_page(page_number)
-    return render(request, "dashboard/table/base.html", {"events": events})
-
 def generate_event():
     """Creates a single event"""
     ENDPOINTS = [
@@ -93,6 +77,21 @@ def generate_event():
         event.save()
 
     return event
+
+generate_event_async = sync_to_async(generate_event)
+
+def dashboard(request):
+    """Main view that renders the monitoring dashboard"""
+    return render(request, "dashboard/index.html", {
+        "is_generating": is_generating,
+    })
+
+def table_rows(request):
+    """HTMX endpoint for paginated table rows"""
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(Event.objects.all().order_by("-timestamp"), 15)
+    events = paginator.get_page(page_number)
+    return render(request, "dashboard/table/base.html", {"events": events})
 
 def generate_events():
     """Background thread that generates events while is_generating is True"""
@@ -337,7 +336,6 @@ async def event_stream(request):
                         logger.info("Generation stopped")
                         break
 
-                    # Use the async version
                     event = await generate_event_async()
                     event_data = {
                         'timestamp': event.timestamp.isoformat(),
