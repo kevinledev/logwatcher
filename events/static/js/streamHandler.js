@@ -39,9 +39,13 @@ class StreamHandler {
     console.log('[StreamHandler] Disconnecting...');
     if (this.eventSource) {
         try {
-            await fetch('/stream/stop/');
+            const response = await fetch('/stream/stop/');
+            const data = await response.json();
+            console.log('[StreamHandler] Stop request response:', data);
+            
             this.eventSource.close();
             this.eventSource = null;
+            console.log('[StreamHandler] EventSource closed');
         } catch (error) {
             console.error('[StreamHandler] Error stopping stream:', error);
         }

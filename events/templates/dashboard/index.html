@@ -10,7 +10,7 @@
     <!-- Your other scripts -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.1/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.1/dist/chartjt-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0/dist/chartjs-plugin-streaming.min.js"></script>
     <script src="{% static 'js/streamHandler.js' %}"></script>
 
@@ -90,8 +90,13 @@
         const endpoint = isGenerating ? '/stream/stop/' : '/stream/start/';
 
         try {
-          await fetch(endpoint);
+          console.log(`[Toggle] Current state: ${isGenerating}, calling ${endpoint}`);
+          const response = await fetch(endpoint);
+          const data = await response.json();
+          console.log('[Toggle] Server response:', data);
+          
           isGenerating = !isGenerating;
+          console.log(`[Toggle] New state: ${isGenerating}`);
 
           if (isGenerating) {
             streamHandler.connect();
@@ -104,12 +109,8 @@
           btn.textContent = isGenerating ? 'Stop Stream' : 'Start Stream';
           btn.classList.toggle('btn-danger');
           btn.classList.toggle('btn-primary');
-
-          document.dispatchEvent(new CustomEvent('generationStateChanged', {
-            detail: { isGenerating }
-          }));
         } catch (error) {
-          console.error('Error toggling generation:', error);
+          console.error('[Toggle] Error:', error);
         }
       }
     </script>

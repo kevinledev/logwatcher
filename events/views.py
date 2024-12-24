@@ -109,8 +109,10 @@ def generate_events():
 def start_generation(request):
     """API endpoint to start event generation"""
     global is_generating
+    logger.info("Start generation requested")
     is_generating = True
     cache.set('is_generating', True)
+    logger.info(f"Generation started. Cache state: {cache.get('is_generating')}")
     return JsonResponse({"status": "started"})
 
 def stop_generation(request):
@@ -119,7 +121,7 @@ def stop_generation(request):
     logger.info("Stop generation requested")
     is_generating = False
     cache.set('is_generating', False)
-    logger.info("Generation stopped and cache updated")
+    logger.info(f"Generation stopped. Cache state: {cache.get('is_generating')}")
     return JsonResponse({"status": "stopped"})
 
 def get_latency_data(request):
@@ -337,7 +339,9 @@ def get_historical_error_data(request):
     })
 
 async def event_stream(request):
-    logger.info("SSE connection attempted")
+    logger.info(f"SSE connection attempted. Current generation state: {cache.get('is_generating')}")
+    global is_generating
+    is_generating = cache.get('is_generating', False)
     try:
         async def event_stream_generator():
             logger.info("Starting event stream generator")
