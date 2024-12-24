@@ -17,7 +17,6 @@ from django.core.paginator import Paginator
 from asgiref.sync import sync_to_async
 from django.db import models
 import logging
-from django.db import transaction
 
 # Global flag to control event generation
 is_generating = False
