@@ -100,7 +100,7 @@ def generate_events():
     """Background thread that generates events while is_generating is True"""
     global is_generating
     while is_generating:
-        generate_event()
+        generate_event_async()
         time.sleep(5)
 
 def start_generation(request):
