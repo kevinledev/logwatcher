@@ -18,7 +18,6 @@ from asgiref.sync import sync_to_async
 from django.db import models
 import logging
 from django.db import transaction
-from django.core.cache import cache
 
 # Global flag to control event generation
 is_generating = False
@@ -86,8 +85,6 @@ async def generate_event_async():
 def dashboard(request):
     """Main view that renders the monitoring dashboard"""
     global is_generating
-    # Sync the global variable with cache
-    is_generating = cache.get('is_generating', False)
     return render(request, "dashboard/index.html", {
         "is_generating": is_generating,
     })
@@ -111,21 +108,15 @@ def start_generation(request):
     global is_generating
     logger.info("Start generation requested")
     is_generating = True
-    cache.set('is_generating', True)
-    logger.info(f"Generation started. Cache state: {cache.get('is_generating')}")
+    logger.info("Generation started")
     return JsonResponse({"status": "started"})
 
 def stop_generation(request):
     """API endpoint to stop event generation"""
     global is_generating
     logger.info("Stop generation requested")
-    
-    # Force close any existing connections
     is_generating = False
-    cache.delete('is_generating')  # Remove from cache completely
-    cache.set('is_generating', False)  # Set new value
-    
-    logger.info(f"Generation stopped. Cache state: {cache.get('is_generating')}")
+    logger.info("Generation stopped")
     return JsonResponse({"status": "stopped"})
 
 def get_latency_data(request):
@@ -343,19 +334,16 @@ def get_historical_error_data(request):
     })
 
 async def event_stream(request):
-    logger.info(f"SSE connection attempted. Current generation state: {cache.get('is_generating')}")
+    logger.info("SSE connection attempted")
     global is_generating
     
-    # Double check the state
-    cache_state = cache.get('is_generating', False)
-    if not cache_state:
+    if not is_generating:
         logger.info("Stream requested but generation is stopped")
         return StreamingHttpResponse(
             content_type='text/event-stream',
             streaming_content=iter([f"data: {json.dumps({'error': 'Generation stopped'})}\n\n"])
         )
     
-    is_generating = cache_state
     try:
         async def event_stream_generator():
             logger.info("Starting event stream generator")
