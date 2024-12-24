@@ -1,19 +1,37 @@
 class StreamHandler {
   constructor() {
+    console.log('[StreamHandler] Initializing...');
     this.subscribers = new Map();
     this.eventSource = null;
     this.dataBuffers = new Map();
     this.lastUpdates = new Map();
     this.defaultInterval = 10;
+    console.log('[StreamHandler] Initialized successfully');
   }
 
   connect() {
+    console.log('[StreamHandler] Attempting to connect...');
     if (!this.eventSource) {
-      this.eventSource = new EventSource("/stream/events/");
-      this.eventSource.onerror = () => {
-        console.log("SSE connection error, attempting to reconnect...");
-      };
-      this.setupSubscribers();
+      try {
+        this.eventSource = new EventSource("/stream/events/");
+        console.log('[StreamHandler] EventSource created');
+        
+        this.eventSource.onopen = () => {
+          console.log('[StreamHandler] Connection opened successfully');
+        };
+
+        this.eventSource.onerror = (error) => {
+          console.error('[StreamHandler] Connection error:', error);
+          console.log('[StreamHandler] Connection state:', this.eventSource.readyState);
+          console.log('[StreamHandler] Attempting to reconnect...');
+        };
+
+        this.setupSubscribers();
+      } catch (error) {
+        console.error('[StreamHandler] Failed to create EventSource:', error);
+      }
+    } else {
+      console.log('[StreamHandler] Connection already exists');
     }
   }
 
@@ -35,19 +53,30 @@ class StreamHandler {
   }
 
   setupSubscribers() {
+    console.log('[StreamHandler] Setting up event listeners...');
     this.eventSource.addEventListener("api.request", (e) => {
+      console.log('[StreamHandler] Received api.request event');
+      
       if (!isGenerating) {
+        console.log('[StreamHandler] Generation stopped, disconnecting');
         this.disconnect();
         return;
       }
 
       try {
         const rawData = JSON.parse(e.data);
-        if (!rawData.timestamp) return;
+        console.log('[StreamHandler] Parsed event data:', rawData);
+
+        if (!rawData.timestamp) {
+          console.warn('[StreamHandler] Missing timestamp in data');
+          return;
+        }
 
         const formattedData = this.formatEventData(rawData);
+        console.log('[StreamHandler] Formatted data:', formattedData);
 
         this.subscribers.forEach((sub, id) => {
+          console.log(`[StreamHandler] Processing subscriber ${id}`);
           if (sub.options.buffered) {
             if (!this.dataBuffers.has(id)) {
               this.dataBuffers.set(id, [formattedData]);
@@ -91,7 +120,7 @@ class StreamHandler {
           }
         });
       } catch (error) {
-        console.error("Error processing stream data:", error);
+        console.error('[StreamHandler] Error processing stream data:', error);
       }
     });
   }

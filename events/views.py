@@ -17,9 +17,12 @@ from django.db.models.expressions import ExpressionWrapper
 from django.core.paginator import Paginator
 from asgiref.sync import sync_to_async
 from django.db import models
+import logging
 
 # Global flag to control event generation
 is_generating = False
+
+logger = logging.getLogger(__name__)
 
 def dashboard(request):
     """Main view that renders the monitoring dashboard"""
@@ -322,61 +325,65 @@ def get_historical_error_data(request):
     })
 
 async def event_stream(request):
-    async def event_stream_generator():
-        while True:
-            if not is_generating:
-                break
+    logger.info("SSE connection attempted")
+    try:
+        async def event_stream_generator():
+            while True:
+                if not is_generating:
+                    break
 
-            event = await sync_to_async(generate_event)()
-            
-            # Calculate error rates right here for each event
-            now = timezone.now()
-            window_start = now - timedelta(minutes=5)
-            
-            # Get window events with proper async/await
-            window_events = Event.objects.filter(timestamp__gte=window_start)
-            total_requests = await sync_to_async(window_events.count)()
-            
-            if total_requests > 0:
-                client_errors = await sync_to_async(
-                    window_events.filter(
-                        status_code__gte=400, 
-                        status_code__lt=500
-                    ).count
-                )()
+                event = await sync_to_async(generate_event)()
                 
-                server_errors = await sync_to_async(
-                    window_events.filter(
-                        status_code__gte=500
-                    ).count
-                )()
+                # Calculate error rates right here for each event
+                now = timezone.now()
+                window_start = now - timedelta(minutes=5)
                 
-                error_rates = {
-                    'client_error_rate': round((client_errors / total_requests) * 100, 2),
-                    'server_error_rate': round((server_errors / total_requests) * 100, 2)
+                # Get window events with proper async/await
+                window_events = Event.objects.filter(timestamp__gte=window_start)
+                total_requests = await sync_to_async(window_events.count)()
+                
+                if total_requests > 0:
+                    client_errors = await sync_to_async(
+                        window_events.filter(
+                            status_code__gte=400, 
+                            status_code__lt=500
+                        ).count
+                    )()
+                    
+                    server_errors = await sync_to_async(
+                        window_events.filter(
+                            status_code__gte=500
+                        ).count
+                    )()
+                    
+                    error_rates = {
+                        'client_error_rate': round((client_errors / total_requests) * 100, 2),
+                        'server_error_rate': round((server_errors / total_requests) * 100, 2)
+                    }
+                else:
+                    error_rates = {
+                        'client_error_rate': 0,
+                        'server_error_rate': 0
+                    }
+
+                event_data = {
+                    'timestamp': event.timestamp.isoformat(),
+                    'method': event.method,
+                    'source': event.source,
+                    'status_code': event.status_code,
+                    'duration_ms': event.duration_ms,
+                    'metadata': event.metadata,
+                    'error_rates': error_rates
                 }
-            else:
-                error_rates = {
-                    'client_error_rate': 0,
-                    'server_error_rate': 0
-                }
 
-            event_data = {
-                'timestamp': event.timestamp.isoformat(),
-                'method': event.method,
-                'source': event.source,
-                'status_code': event.status_code,
-                'duration_ms': event.duration_ms,
-                'metadata': event.metadata,
-                'error_rates': error_rates
-            }
+                yield f"data: {json.dumps(event_data)}\nevent: api.request\n\n"
+                await asyncio.sleep(5)
 
-            yield f"data: {json.dumps(event_data)}\nevent: api.request\n\n"
-            await asyncio.sleep(5)
-
-    response = StreamingHttpResponse(
-        streaming_content=event_stream_generator(),
-        content_type='text/event-stream'
-    )
-    response['Cache-Control'] = 'no-cache'
-    return response
+        response = StreamingHttpResponse(
+            streaming_content=event_stream_generator(),
+            content_type='text/event-stream'
+        )
+        response['Cache-Control'] = 'no-cache'
+        return response
+    except Exception as e:
+        logger.error(f"Stream error: {str(e)}")
