@@ -18,29 +18,32 @@ from django.core.paginator import Paginator
 from asgiref.sync import sync_to_async
 from django.db import models
 import logging
+from django.db import transaction
 
 # Global flag to control event generation
 is_generating = False
 
 logger = logging.getLogger(__name__)
 
-def generate_event():
-    """Creates a single event"""
+# Create async versions of the database operations
+create_event_async = sync_to_async(Event.objects.create)
+save_event_async = sync_to_async(lambda x: x.save())
+
+async def generate_event_async():
+    """Async version of generate_event"""
     ENDPOINTS = [
         "/api/users",
         "/api/products",
         "/api/orders",
     ]
 
-    # Adjusted patterns with weights for more realistic distribution
     API_PATTERNS = [
-        {"method": "GET", "duration_range": (50, 200), "weight": 60},  # 60% GET
-        {"method": "POST", "duration_range": (100, 400), "weight": 25},  # 25% POST
-        {"method": "PUT", "duration_range": (80, 300), "weight": 10},  # 10% PUT
-        {"method": "DELETE", "duration_range": (50, 150), "weight": 5},  # 5% DELETE
+        {"method": "GET", "duration_range": (50, 200), "weight": 60},
+        {"method": "POST", "duration_range": (100, 400), "weight": 25},
+        {"method": "PUT", "duration_range": (80, 300), "weight": 10},
+        {"method": "DELETE", "duration_range": (50, 150), "weight": 5},
     ]
 
-    # Status code patterns with weights and messages
     STATUS_PATTERNS = [
         {"code": 200, "weight": 85, "message": "Success"},
         {"code": 201, "weight": 5, "message": "Created"},
@@ -52,7 +55,7 @@ def generate_event():
     pattern = random.choices(API_PATTERNS, weights=[p["weight"] for p in API_PATTERNS])[0]
     status = random.choices(STATUS_PATTERNS, weights=[s["weight"] for s in STATUS_PATTERNS])[0]
 
-    event = Event.objects.create(
+    event = await create_event_async(
         method=pattern["method"],
         source=random.choice(ENDPOINTS),
         duration_ms=random.randint(*pattern["duration_range"]),
@@ -74,11 +77,9 @@ def generate_event():
             'error_message': f"{status['message']} for {event.method} request to {event.source}",
             'error_details': error_details
         }
-        event.save()
+        await save_event_async(event)
 
     return event
-
-generate_event_async = sync_to_async(generate_event)
 
 def dashboard(request):
     """Main view that renders the monitoring dashboard"""
