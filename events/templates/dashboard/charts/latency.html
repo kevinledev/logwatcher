@@ -127,7 +127,7 @@
             });
             latencyChart.update();
         }
-    }, { buffered: true });
+    });
 
     document.addEventListener('generationStateChanged', function(e) {
         if (!e.detail.isGenerating) {

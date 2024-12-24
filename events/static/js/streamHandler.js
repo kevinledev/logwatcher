@@ -3,8 +3,6 @@ class StreamHandler {
     console.log('[StreamHandler] Initializing...');
     this.subscribers = new Map();
     this.eventSource = null;
-    this.dataBuffers = new Map();
-    this.lastUpdates = new Map();
     console.log('[StreamHandler] Initialized successfully');
   }
 
@@ -50,10 +48,8 @@ class StreamHandler {
             const data = await response.json();
             console.log('[StreamHandler] Stop request response:', data);
             
-            // Clear all subscribers and buffers
+            // Clear all subscribers
             this.subscribers.clear();
-            this.dataBuffers.clear();
-            this.lastUpdates.clear();
         } catch (error) {
             console.error('[StreamHandler] Error stopping stream:', error);
         }
@@ -87,25 +83,18 @@ class StreamHandler {
     });
   }
 
-  subscribe(callback, options = { buffered: false }) {
+  subscribe(callback) {
     const id = Math.random().toString(36);
     this.subscribers.set(id, { 
       callback, 
-      options,
     });
-    
-    if (options.buffered) {
-      this.dataBuffers.set(id, []);
-      this.lastUpdates.set(id, Date.now());
-    }
 
     if (isGenerating && !this.eventSource) {
       this.connect();
     }
+    
     return () => {
       this.subscribers.delete(id);
-      this.dataBuffers.delete(id);
-      this.lastUpdates.delete(id);
     };
   }
 

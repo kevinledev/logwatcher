@@ -107,7 +107,7 @@
     // Keep track of requests in the current window
     let requestWindow = [];
     
-    // Subscribe to stream updates with buffering
+    // Subscribe to stream updates
     streamHandler.subscribe((data) => {
         const intervalSeconds = 10;
         const now = data.time.getTime();
@@ -142,7 +142,7 @@
                 errorRateChart.update('quiet');
             }
         }
-    }, { buffered: true });
+    });
 
     document.addEventListener('generationStateChanged', function(e) {
         if (!e.detail.isGenerating) {
