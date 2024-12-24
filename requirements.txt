@@ -6,12 +6,13 @@ azure-core==1.32.0
 certifi==2024.12.14
 cffi==1.17.1
 charset-normalizer==3.4.0
+click==8.1.8
 constantly==23.10.4
 cryptography==44.0.0
 daphne==4.1.2
 Django==5.1.4
-gevent==24.11.1
 greenlet==3.1.1
+h11==0.14.0
 hyperlink==21.0.0
 idna==3.10
 incremental==24.7.2
@@ -29,6 +30,6 @@ Twisted==24.11.0
 txaio==23.1.1
 typing_extensions==4.12.2
 urllib3==2.3.0
+uvicorn==0.34.0
 zope.event==5.0
 zope.interface==7.2
-uvicorn==0.27.0
