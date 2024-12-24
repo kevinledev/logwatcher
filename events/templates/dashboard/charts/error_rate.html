@@ -2,17 +2,11 @@
     <canvas id="errorRateChart"></canvas>
 </div>
 
-{% with timerange_id="errorTimeRange" timerange_name="error-timeframe-group" interval_id="errorInterval" interval_name="error-interval-group" %}
+{% with timerange_id="errorTimeRange" timerange_name="error-timeframe-group" %}
     {% include "dashboard/charts/controls.html" %}
 {% endwith %}
 
 <script>
-    const ERROR_REFRESH_RATES = {
-        10: 2000,
-        30: 5000,
-        60: 10000,
-    };
-
     // Chart setup
     const errorCtx = document.getElementById("errorRateChart").getContext("2d");
     const errorRateChart = new Chart(errorCtx, {
@@ -110,24 +104,12 @@
         });
     });
 
-    // Event listeners for interval controls
-    document.querySelectorAll('input[name="error-interval-group"]').forEach((radioBtn) => {
-        radioBtn.addEventListener("change", (e) => {
-            const intervalSeconds = parseInt(e.target.value);
-            const refreshRate = ERROR_REFRESH_RATES[intervalSeconds];
-            errorRateChart.options.scales.x.realtime.refresh = refreshRate;
-            streamHandler.setInterval(intervalSeconds);
-            loadHistoricalErrorData();
-        });
-    });
-
     // Keep track of requests in the current window
     let requestWindow = [];
     
     // Subscribe to stream updates with buffering
     streamHandler.subscribe((data) => {
-        const selectedInterval = document.querySelector('input[name="error-interval-group"]:checked');
-        const intervalSeconds = selectedInterval ? parseInt(selectedInterval.value) : 60;
+        const intervalSeconds = 10;
         const now = data.time.getTime();
         const lastDataPoint = errorRateChart.data.datasets[0].data[errorRateChart.data.datasets[0].data.length - 1];
         
@@ -169,8 +151,7 @@
     });
 
     async function loadHistoricalErrorData() {
-        const selectedInterval = document.querySelector('input[name="error-interval-group"]:checked');
-        const intervalSeconds = selectedInterval ? parseInt(selectedInterval.value) : 60;
+        const intervalSeconds = 10;
 
         const selectedTimeframe = document.querySelector('input[name="error-timeframe-group"]:checked');
         const rangeMinutes = selectedTimeframe ? parseInt(selectedTimeframe.value) : 15;

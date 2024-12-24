@@ -5,7 +5,6 @@ class StreamHandler {
     this.eventSource = null;
     this.dataBuffers = new Map();
     this.lastUpdates = new Map();
-    this.defaultInterval = 10;
     console.log('[StreamHandler] Initialized successfully');
   }
 
@@ -61,16 +60,6 @@ class StreamHandler {
     }
   }
 
-  setInterval(seconds, subscriberId) {
-    const lastUpdate = this.lastUpdates.get(subscriberId) || Date.now();
-    
-    const timeSinceLastUpdate = Date.now() - lastUpdate;
-    const remainingTime = seconds * 1000 - (timeSinceLastUpdate % (seconds * 1000));
-    
-    this.dataBuffers.set(subscriberId, []);
-    this.lastUpdates.set(subscriberId, lastUpdate + (timeSinceLastUpdate - remainingTime));
-  }
-
   setupSubscribers() {
     console.log('[StreamHandler] Setting up event listeners...');
     
@@ -103,7 +92,6 @@ class StreamHandler {
     this.subscribers.set(id, { 
       callback, 
       options,
-      interval: this.defaultInterval
     });
     
     if (options.buffered) {
