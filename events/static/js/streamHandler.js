@@ -12,26 +12,28 @@ class StreamHandler {
   connect() {
     console.log('[StreamHandler] Attempting to connect...');
     if (!this.eventSource) {
-      try {
-        this.eventSource = new EventSource("/stream/events/");
-        console.log('[StreamHandler] EventSource created');
-        
-        this.eventSource.onopen = () => {
-          console.log('[StreamHandler] Connection opened successfully');
-        };
+        try {
+            this.eventSource = new EventSource("/stream/events/");
+            console.log('[StreamHandler] EventSource created');
+            
+            this.eventSource.onopen = () => {
+                console.log('[StreamHandler] Connection opened successfully');
+            };
 
-        this.eventSource.onerror = (error) => {
-          console.error('[StreamHandler] Connection error:', error);
-          console.log('[StreamHandler] Connection state:', this.eventSource.readyState);
-          console.log('[StreamHandler] Attempting to reconnect...');
-        };
+            this.eventSource.onerror = (error) => {
+                console.error('[StreamHandler] Connection error:', error);
+                if (!isGenerating) {
+                    console.log('[StreamHandler] Generation stopped, closing connection');
+                    this.disconnect();
+                    return;
+                }
+                console.log('[StreamHandler] Connection state:', this.eventSource.readyState);
+            };
 
-        this.setupSubscribers();
-      } catch (error) {
-        console.error('[StreamHandler] Failed to create EventSource:', error);
-      }
-    } else {
-      console.log('[StreamHandler] Connection already exists');
+            this.setupSubscribers();
+        } catch (error) {
+            console.error('[StreamHandler] Failed to create EventSource:', error);
+        }
     }
   }
 
