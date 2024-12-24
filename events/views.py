@@ -329,61 +329,37 @@ async def event_stream(request):
     try:
         async def event_stream_generator():
             while True:
-                if not is_generating:
+                try:
+                    if not is_generating:
+                        logger.info("Generation stopped")
+                        break
+
+                    event = await sync_to_async(generate_event)()
+                    event_data = {
+                        'timestamp': event.timestamp.isoformat(),
+                        'method': event.method,
+                        'source': event.source,
+                        'status_code': event.status_code,
+                        'duration_ms': event.duration_ms,
+                        'metadata': event.metadata
+                    }
+
+                    yield f"data: {json.dumps(event_data)}\nevent: api.request\n\n"
+                    await asyncio.sleep(5)
+                except Exception as e:
+                    logger.error(f"Error in generator: {str(e)}")
                     break
 
-                event = await sync_to_async(generate_event)()
-                
-                # Calculate error rates right here for each event
-                now = timezone.now()
-                window_start = now - timedelta(minutes=5)
-                
-                # Get window events with proper async/await
-                window_events = Event.objects.filter(timestamp__gte=window_start)
-                total_requests = await sync_to_async(window_events.count)()
-                
-                if total_requests > 0:
-                    client_errors = await sync_to_async(
-                        window_events.filter(
-                            status_code__gte=400, 
-                            status_code__lt=500
-                        ).count
-                    )()
-                    
-                    server_errors = await sync_to_async(
-                        window_events.filter(
-                            status_code__gte=500
-                        ).count
-                    )()
-                    
-                    error_rates = {
-                        'client_error_rate': round((client_errors / total_requests) * 100, 2),
-                        'server_error_rate': round((server_errors / total_requests) * 100, 2)
-                    }
-                else:
-                    error_rates = {
-                        'client_error_rate': 0,
-                        'server_error_rate': 0
-                    }
-
-                event_data = {
-                    'timestamp': event.timestamp.isoformat(),
-                    'method': event.method,
-                    'source': event.source,
-                    'status_code': event.status_code,
-                    'duration_ms': event.duration_ms,
-                    'metadata': event.metadata,
-                    'error_rates': error_rates
-                }
-
-                yield f"data: {json.dumps(event_data)}\nevent: api.request\n\n"
-                await asyncio.sleep(5)
-
         response = StreamingHttpResponse(
-            streaming_content=event_stream_generator(),
+            event_stream_generator(),
             content_type='text/event-stream'
         )
         response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
         return response
     except Exception as e:
         logger.error(f"Stream error: {str(e)}")
+        return StreamingHttpResponse(
+            content_type='text/event-stream',
+            streaming_content=iter([f"data: {json.dumps({'error': str(e)})}\n\n"])
+        )
