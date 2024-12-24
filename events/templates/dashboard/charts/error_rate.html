@@ -126,32 +126,22 @@
     
     // Subscribe to stream updates with buffering
     streamHandler.subscribe((data) => {
-        const processStart = Date.now();
-        console.log('[ErrorRateChart] Processing data at:', processStart);
-        
-        // Only add data points according to our selected interval
         const selectedInterval = document.querySelector('input[name="error-interval-group"]:checked');
         const intervalSeconds = selectedInterval ? parseInt(selectedInterval.value) : 60;
         const now = data.time.getTime();
         const lastDataPoint = errorRateChart.data.datasets[0].data[errorRateChart.data.datasets[0].data.length - 1];
         
-        console.log('[ErrorRateChart] Time since last update:', lastDataPoint ? now - lastDataPoint.x : 'First update');
-        
-        // If we don't have any data points yet, or if enough time has passed since the last one
         if (!lastDataPoint || (now - lastDataPoint.x) >= intervalSeconds * 1000) {
-            // Add new request to window
             requestWindow.push({
                 timestamp: now,
                 isClientError: data.status >= 400 && data.status < 500,
                 isServerError: data.status >= 500
             });
 
-            // Remove old requests outside the window
             requestWindow = requestWindow.filter(req => 
                 now - req.timestamp <= errorRateChart.options.scales.x.realtime.duration
             );
 
-            // Calculate error rates
             const totalRequests = requestWindow.length;
             if (totalRequests > 0) {
                 const clientErrors = requestWindow.filter(req => req.isClientError).length;
@@ -168,10 +158,7 @@
                 });
 
                 errorRateChart.update('quiet');
-                console.log('[ErrorRateChart] Updated at:', Date.now(), 'Processing took:', Date.now() - processStart, 'ms');
             }
-        } else {
-            console.log('[ErrorRateChart] Update skipped, not enough time elapsed');
         }
     }, { buffered: true });
 
