@@ -1,5 +1,4 @@
 import asyncio
-from functools import cache
 from django.shortcuts import render
 from django.http import JsonResponse, StreamingHttpResponse
 from .models import Event
@@ -19,6 +18,7 @@ from asgiref.sync import sync_to_async
 from django.db import models
 import logging
 from django.db import transaction
+from django.core.cache import cache
 
 # Global flag to control event generation
 is_generating = False
@@ -112,7 +112,10 @@ def start_generation(request):
 def stop_generation(request):
     """API endpoint to stop event generation"""
     global is_generating
+    logger.info("Stop generation requested")
     is_generating = False
+    cache.set('is_generating', False)
+    logger.info("Generation stopped and cache updated")
     return JsonResponse({"status": "stopped"})
 
 def get_latency_data(request):
@@ -333,12 +336,14 @@ async def event_stream(request):
     logger.info("SSE connection attempted")
     try:
         async def event_stream_generator():
+            logger.info("Starting event stream generator")
             while True:
                 try:
                     if not is_generating:
-                        logger.info("Generation stopped")
+                        logger.info("Generation stopped, breaking stream")
                         break
 
+                    logger.info("Generating event...")
                     event = await generate_event_async()
                     if not event:
                         logger.warning("No event generated")
