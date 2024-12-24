@@ -25,9 +25,11 @@ is_generating = False
 
 logger = logging.getLogger(__name__)
 
-# Create async versions of the database operations
+# Create async versions of all database operations
 create_event_async = sync_to_async(Event.objects.create)
 save_event_async = sync_to_async(lambda x: x.save())
+get_events_async = sync_to_async(Event.objects.filter)
+paginate_async = sync_to_async(Paginator)
 
 async def generate_event_async():
     """Async version of generate_event"""
@@ -338,6 +340,10 @@ async def event_stream(request):
                         break
 
                     event = await generate_event_async()
+                    if not event:
+                        logger.warning("No event generated")
+                        continue
+
                     event_data = {
                         'timestamp': event.timestamp.isoformat(),
                         'method': event.method,
