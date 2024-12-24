@@ -24,6 +24,9 @@ is_generating = False
 
 logger = logging.getLogger(__name__)
 
+# Create a sync_to_async version of generate_event
+generate_event_async = sync_to_async(generate_event)
+
 def dashboard(request):
     """Main view that renders the monitoring dashboard"""
     return render(request, "dashboard/index.html", {
@@ -334,7 +337,8 @@ async def event_stream(request):
                         logger.info("Generation stopped")
                         break
 
-                    event = await sync_to_async(generate_event)()
+                    # Use the async version
+                    event = await generate_event_async()
                     event_data = {
                         'timestamp': event.timestamp.isoformat(),
                         'method': event.method,
