@@ -30,7 +30,7 @@
   {% if events %}
   <nav class="d-flex justify-content-end align-items-center gap-4" aria-label="Event list navigation">
 
-    <form class="input-group specific-w-150"
+    <form class="input-group input-group-sm specific-w-150"
       hx-get="{% url 'table_rows' %}"
       hx-target="#event-table-container"
       hx-trigger="submit">
@@ -47,7 +47,7 @@
     </form>
 
 
-    <ul class="pagination pagination m-0">
+    <ul class="pagination pagination-sm m-0">
       {% if events.has_previous %}
       <li class="page-item">
         <a class="page-link" style="cursor: pointer"
@@ -105,13 +105,24 @@
 </div>
 
 <script>
-  streamHandler.subscribe(
-    (data) => {
-      const tbody = document.querySelector("table tbody");
-      const firstRow = tbody.querySelector("tr");
-      const newRow = document.createElement("tr");
+  // Clean up any existing subscription for this table
+  if (window.currentTableSubscription) {
+    streamHandler.unsubscribe(window.currentTableSubscription);
+  }
 
-      newRow.innerHTML = `
+  // Create new subscription and store its ID
+  window.currentTableSubscription = streamHandler.subscribe(
+    (data) => {
+      const activePage = document.querySelector('.page-item.active .page-link');
+      if (!activePage || activePage.textContent.trim() === '1') {
+        const tbody = document.querySelector("table tbody");
+        const firstRow = tbody.querySelector("tr");
+        const newRow = document.createElement("tr");
+        
+        const isError = data.status >= 400;
+        newRow.classList.add(isError ? 'highlight-error' : 'highlight-success');
+
+        newRow.innerHTML = `
             <td>${data.time.toLocaleString()}</td>
             <td>${data.method}</td>
             <td>${data.source}</td>
@@ -120,16 +131,16 @@
             <td>${data.message}</td>
         `;
 
-      if (firstRow) {
-        tbody.insertBefore(newRow, firstRow);
-      } else {
-        tbody.appendChild(newRow);
-      }
+        if (firstRow) {
+          tbody.insertBefore(newRow, firstRow);
+        } else {
+          tbody.appendChild(newRow);
+        }
 
-      // Keep pagination count correct
-      const rows = tbody.querySelectorAll("tr");
-      if (rows.length > 15) {
-        rows[rows.length - 1].remove();
+        const rows = tbody.querySelectorAll("tr");
+        if (rows.length > 15) {
+          rows[rows.length - 1].remove();
+        }
       }
     },
     { buffered: false }

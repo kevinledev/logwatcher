@@ -27,8 +27,6 @@ class StreamHandler {
           );
         };
 
-        // Event listener for every api.request event
-        // Subscribe each chart/table to this event with their own callback functions to trigger updates
         this.eventSource.addEventListener("api.request", async (e) => {
           try {
             const rawData = JSON.parse(e.data);
@@ -71,16 +69,21 @@ class StreamHandler {
     }
   }
 
-  subscribe(callback) {
+  subscribe(callback, options = {}) {
     const id = Math.random().toString(36);
-    this.subscribers.set(id, { callback });
-
+    this.subscribers.set(id, { callback, options });
+    
     if (isGenerating && !this.eventSource) {
       this.connect();
     }
-    return () => {
+    return id;
+  }
+
+  unsubscribe(id) {
+    if (this.subscribers.has(id)) {
       this.subscribers.delete(id);
-    };
+      console.log("[StreamHandler] Unsubscribed:", id);
+    }
   }
 
   formatEventData(rawData) {

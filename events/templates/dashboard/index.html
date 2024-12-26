@@ -25,7 +25,7 @@
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   </head>
-  <body class="with-custom-webkit-scrollbars with-custom-css-scrollbars">
+  <body>
     <div>
       <nav class="navbar expand-md sticky-top">
         <div class="container-fluid px-4 py-2">
@@ -33,7 +33,7 @@
           <div class="d-flex align-items-center gap-2">
             <!-- Live Indicator -->
             <div id="liveIndicator">
-              <span class="badge text-bg-light d-flex align-items-center">
+              <span class="card  d-flex align-items-center flex-row">
                 {% if is_generating %}
                   <span class="spinner-grow spinner-grow-sm me-1 text-success" role="status" aria-hidden="true"></span>
                 {% else %}
@@ -101,10 +101,10 @@
 
           if (isGenerating) {
             streamHandler.connect();
-            liveIndicator.querySelector('.badge').innerHTML = '<span class="spinner-grow spinner-grow-sm me-1 text-success" role="status" aria-hidden="true"></span> Live';
+            liveIndicator.querySelector('.card').innerHTML = '<span class="spinner-grow spinner-grow-sm me-1 text-success" role="status" aria-hidden="true"></span> Live';
           } else {
             await streamHandler.disconnect();
-            liveIndicator.querySelector('.badge').innerHTML = '<span class="me-1 text-danger">●</span> Stopped';
+            liveIndicator.querySelector('.card').innerHTML = '<span class="me-1 text-danger">●</span> Stopped';
           }
 
           btn.textContent = isGenerating ? 'Stop Stream' : 'Start Stream';
@@ -145,5 +145,35 @@
     line-height: 0;
     position: relative;
     top: -0.05em;
+  }
+
+  #liveIndicator .card{
+    padding: 0.25rem 0.5rem;
+  }
+
+  .highlight-success {
+    animation: highlightSuccess 2s ease-out;
+  }
+
+  .highlight-error {
+    animation: highlightError 2s ease-out;
+  }
+
+  @keyframes highlightSuccess {
+    0% {
+      background-color: rgba(59, 130, 246, 0.2);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  @keyframes highlightError {
+    0% {
+      background-color: rgba(220, 38, 38, 0.2);
+    }
+    100% {
+      background-color: transparent;
+    }
   }
 </style>
