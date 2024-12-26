@@ -16,23 +16,31 @@
                 label: "Client Errors (4xx)",
                 data: [],
                 borderColor: "#f59e0b",
-                backgroundColor: "rgba(245, 158, 11, 0.1)",
+                backgroundColor: "rgba(245, 158, 11, 0.08)",
                 fill: true,
-                tension: 0.05,
-                borderWidth: 2
+                tension: 0.2,
+                borderWidth: 1.5,
+                pointRadius: 2,
+                pointHoverRadius: 4
             }, {
                 label: "Server Errors (5xx)",
                 data: [],
                 borderColor: "#dc2626",
-                backgroundColor: "rgba(220, 38, 38, 0.1)",
+                backgroundColor: "rgba(220, 38, 38, 0.08)",
                 fill: true,
-                tension: 0.05,
-                borderWidth: 2
+                tension: 0.2,
+                borderWidth: 1.5,
+                pointRadius: 2,
+                pointHoverRadius: 4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
             plugins: {
                 title: {
                     display: true,
@@ -40,17 +48,37 @@
                     color: '#1F252E',
                     font: {
                         size: 16,
-                        family: 'Inter, system-ui, -apple-system, sans-serif'
-                    }
+                        family: 'Inter, system-ui, -apple-system, sans-serif',
+                        weight: '500'
+                    },
+                    padding: 20
                 },
                 legend: {
                     labels: {
+                        color: '#1F252E',
+                        usePointStyle: true,
+                        padding: 15,
                         font: {
-                            family: 'Inter, system-ui, -apple-system, sans-serif'
-                        },
-                        color: '#1F252E'
+                            family: 'Inter, system-ui, -apple-system, sans-serif',
+                            size: 12
+                        }
                     }
-                }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(31, 37, 46, 0.95)',
+                    padding: 10,
+                    titleFont: {
+                        family: 'Inter, system-ui, -apple-system, sans-serif'
+                    },
+                    bodyFont: {
+                        family: 'Inter, system-ui, -apple-system, sans-serif'
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}%`;
+                        }
+                    }
+                },
             },
             scales: {
                 x: {
@@ -62,30 +90,32 @@
                         onRefresh: () => {}
                     },
                     grid: {
-                        color: 'rgba(107, 114, 128, 0.1)'
+                        color: 'rgba(107, 114, 128, 0.1)',
+                        drawBorder: false
                     },
                     ticks: {
                         color: '#52627A',
                         font: {
-                            family: 'Inter, system-ui, -apple-system, sans-serif'
+                            family: 'Inter, system-ui, -apple-system, sans-serif',
+                            size: 11
                         }
                     }
                 },
                 y: {
                     beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Error Rate (%)',
-                        color: '#1F252E'
-                    },
-                    max: 100,
+                    suggestedMax: 25,
                     grid: {
-                        color: 'rgba(107, 114, 128, 0.1)'
+                        color: 'rgba(107, 114, 128, 0.1)',
+                        drawBorder: false
                     },
                     ticks: {
-                        color: '#52637A',
+                        color: '#52627A',
                         font: {
-                            family: 'Inter, system-ui, -apple-system, sans-serif'
+                            family: 'Inter, system-ui, -apple-system, sans-serif',
+                            size: 11
+                        },
+                        callback: function(value) {
+                            return value + '%';
                         }
                     }
                 }

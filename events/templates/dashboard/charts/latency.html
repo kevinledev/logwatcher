@@ -15,12 +15,14 @@
             datasets: [{
                 label: "Average Latency (ms)",
                 data: [],
-                borderColor: "#2563eb",
-                backgroundColor: "rgba(37, 99, 235, 0.1)",
+                borderColor: "#3b82f6",
+                backgroundColor: "rgba(59, 130, 246, 0.08)",
                 fill: true,
-                tension: 0.05,
-                borderWidth: 2
-            }],
+                tension: 0.2,
+                borderWidth: 1.5,
+                pointRadius: 2,
+                pointHoverRadius: 4
+            }]
         },
         options: {
             responsive: true,
@@ -32,17 +34,32 @@
                     color: '#1F252E',
                     font: {
                         size: 16,
-                        family: 'Inter, system-ui, -apple-system, sans-serif'
-                    }
+                        family: 'Inter, system-ui, -apple-system, sans-serif',
+                        weight: '500'
+                    },
+                    padding: 20
                 },
                 legend: {
                     labels: {
+                        color: '#1F252E',
+                        usePointStyle: true,
+                        padding: 15,
                         font: {
-                            family: 'Inter, system-ui, -apple-system, sans-serif'
-                        },
-                        color: '#1F252E'
+                            family: 'Inter, system-ui, -apple-system, sans-serif',
+                            size: 12
+                        }
                     }
-                }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(31, 37, 46, 0.95)',
+                    padding: 10,
+                    titleFont: {
+                        family: 'Inter, system-ui, -apple-system, sans-serif'
+                    },
+                    bodyFont: {
+                        family: 'Inter, system-ui, -apple-system, sans-serif'
+                    }
+                },
             },
             scales: {
                 x: {
@@ -54,12 +71,14 @@
                         onRefresh: () => {},
                     },
                     grid: {
-                        color: 'rgba(107, 114, 128, 0.1)'
+                        color: 'rgba(107, 114, 128, 0.1)',
+                        drawBorder: false
                     },
                     ticks: {
                         color: '#52627A',
                         font: {
-                            family: 'Inter, system-ui, -apple-system, sans-serif'
+                            family: 'Inter, system-ui, -apple-system, sans-serif',
+                            size: 11
                         }
                     }
                 },
@@ -71,12 +90,13 @@
                         color: '#1F252E'
                     },
                     grid: {
-                        color: 'rgba(107, 114, 128, 0.1)'
+                        color: 'rgba(107, 114, 128, 0.1)',
                     },
                     ticks: {
-                        color: '#52637A',
+                        color: '#52627A',
                         font: {
-                            family: 'Inter, system-ui, -apple-system, sans-serif'
+                            family: 'Inter, system-ui, -apple-system, sans-serif',
+                            size: 11
                         }
                     }
                 },
