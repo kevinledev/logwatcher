@@ -93,6 +93,12 @@
         }
     });
 
+    function getIntervalForTimeframe(timeframeMinutes) {
+        // Aim for ~60 data points
+        const intervalSeconds = Math.floor((timeframeMinutes * 60) / 60);
+        return Math.max(5, intervalSeconds); // Minimum 5 second intervals
+    }
+
     // Initialize with historical data
     loadHistoricalErrorData();
 
@@ -109,21 +115,26 @@
     
     // Subscribe to stream updates
     streamHandler.subscribe((data) => {
-        const intervalSeconds = 10;
-        const now = data.time.getTime();
-        const lastDataPoint = errorRateChart.data.datasets[0].data[errorRateChart.data.datasets[0].data.length - 1];
+        const selectedRadio = document.querySelector('input[name="error-timeframe-group"]:checked');
+        const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
+        const intervalSeconds = getIntervalForTimeframe(rangeMinutes);
         
+        const now = data.time.getTime();
+        
+        // Add new request to window
+        requestWindow.push({
+            timestamp: now,
+            isClientError: data.status >= 400 && data.status < 500,
+            isServerError: data.status >= 500
+        });
+
+        // Remove requests outside the window
+        const windowDuration = errorRateChart.options.scales.x.realtime.duration;
+        requestWindow = requestWindow.filter(req => now - req.timestamp <= windowDuration);
+
+        // Only update chart at interval boundaries
+        const lastDataPoint = errorRateChart.data.datasets[0].data[errorRateChart.data.datasets[0].data.length - 1];
         if (!lastDataPoint || (now - lastDataPoint.x) >= intervalSeconds * 1000) {
-            requestWindow.push({
-                timestamp: now,
-                isClientError: data.status >= 400 && data.status < 500,
-                isServerError: data.status >= 500
-            });
-
-            requestWindow = requestWindow.filter(req => 
-                now - req.timestamp <= errorRateChart.options.scales.x.realtime.duration
-            );
-
             const totalRequests = requestWindow.length;
             if (totalRequests > 0) {
                 const clientErrors = requestWindow.filter(req => req.isClientError).length;
@@ -151,10 +162,9 @@
     });
 
     async function loadHistoricalErrorData() {
-        const intervalSeconds = 10;
-
-        const selectedTimeframe = document.querySelector('input[name="error-timeframe-group"]:checked');
-        const rangeMinutes = selectedTimeframe ? parseInt(selectedTimeframe.value) : 15;
+        const selectedRadio = document.querySelector('input[name="error-timeframe-group"]:checked');
+        const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
+        const intervalSeconds = getIntervalForTimeframe(rangeMinutes);
 
         try {
             const response = await fetch(

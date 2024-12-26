@@ -261,74 +261,51 @@ def get_error_rate_data(request):
 def get_historical_error_data(request):
     interval_seconds = int(request.GET.get("interval", "60"))
     range_minutes = int(request.GET.get('range', '15'))
+    
+    # Scale window size based on timeframe
+    # Use ~1/12 of the total range as the window size
+    window_minutes = max(1, range_minutes // 12)
+    window_size = timedelta(minutes=window_minutes)
 
     now = timezone.now()
     start_time = now - timedelta(minutes=range_minutes)
+    events = Event.objects.filter(timestamp__gte=start_time).order_by('timestamp')
 
-    events = Event.objects.filter(timestamp__gte=start_time)
-
-    if interval_seconds < 60:  # Sub-minute intervals (10s, 30s)
-        aggregated_data = (
-            events.annotate(
-                bucket=ExpressionWrapper(
-                    (ExtractHour('timestamp') * 3600 + 
-                     ExtractMinute('timestamp') * 60 + 
-                     ExtractSecond('timestamp')) / interval_seconds,
-                    output_field=IntegerField()
-                )
-            )
-            .values('bucket')
-            .annotate(
-                total_requests=models.Count('id'),
-                client_errors=models.Count(
-                    'id',
-                    filter=models.Q(status_code__gte=400, status_code__lt=500)
-                ),
-                server_errors=models.Count(
-                    'id',
-                    filter=models.Q(status_code__gte=500)
-                ),
-                timestamp=Min('timestamp')
-            )
-            .order_by('bucket')
+    data_points = []
+    current_time = start_time
+    
+    while current_time <= now:
+        window_start = current_time - window_size
+        window_events = events.filter(
+            timestamp__gt=window_start,
+            timestamp__lte=current_time
         )
-    else:  # Minute-based intervals
-        minutes_fraction = interval_seconds // 60
-        aggregated_data = (
-            events.annotate(
-                bucket=ExpressionWrapper(
-                    (ExtractHour('timestamp') * 60 + ExtractMinute('timestamp')) / minutes_fraction,
-                    output_field=IntegerField()
-                )
-            )
-            .values('bucket')
-            .annotate(
-                total_requests=models.Count('id'),
-                client_errors=models.Count(
-                    'id',
-                    filter=models.Q(status_code__gte=400, status_code__lt=500)
-                ),
-                server_errors=models.Count(
-                    'id',
-                    filter=models.Q(status_code__gte=500)
-                ),
-                timestamp=Min('timestamp')
-            )
-            .order_by('bucket')
-        )
+        
+        total = window_events.count()
+        if total > 0:
+            client_errors = window_events.filter(status_code__gte=400, status_code__lt=500).count()
+            server_errors = window_events.filter(status_code__gte=500).count()
+            
+            data_points.append({
+                'timestamp': current_time,
+                'client_error_rate': (client_errors / total) * 100,
+                'server_error_rate': (server_errors / total) * 100
+            })
+        
+        current_time += timedelta(seconds=interval_seconds)
 
     return JsonResponse({
         'client_errors': [
             {
-                'x': entry['timestamp'].timestamp() * 1000,
-                'y': round((entry['client_errors'] / entry['total_requests']) * 100, 2) if entry['total_requests'] > 0 else 0
-            } for entry in aggregated_data
+                'x': point['timestamp'].timestamp() * 1000,
+                'y': point['client_error_rate']
+            } for point in data_points
         ],
         'server_errors': [
             {
-                'x': entry['timestamp'].timestamp() * 1000,
-                'y': round((entry['server_errors'] / entry['total_requests']) * 100, 2) if entry['total_requests'] > 0 else 0
-            } for entry in aggregated_data
+                'x': point['timestamp'].timestamp() * 1000,
+                'y': point['server_error_rate']
+            } for point in data_points
         ]
     })
 

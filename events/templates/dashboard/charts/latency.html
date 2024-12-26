@@ -84,13 +84,16 @@
         },
     });
 
+    function getIntervalForTimeframe(timeframeMinutes) {
+        // Aim for ~60 data points
+        const intervalSeconds = Math.floor((timeframeMinutes * 60) / 60);
+        return Math.max(5, intervalSeconds); // Minimum 5 second intervals
+    }
+
     async function loadHistoricalLatencyData() {
-        // Get selected timeframe
         const selectedRadio = document.querySelector('input[name="latency-timeframe-group"]:checked');
         const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
-
-        // hardcoded for now
-        intervalSeconds = 10;
+        const intervalSeconds = getIntervalForTimeframe(rangeMinutes);
 
         fetch(`/api/historical-latency-data/?interval=${intervalSeconds}&range=${rangeMinutes}`)
             .then((response) => response.json())
@@ -116,7 +119,10 @@
 
     // Subscribe to stream updates with buffering
     streamHandler.subscribe((data) => {
-        const intervalSeconds = 10;
+        const selectedRadio = document.querySelector('input[name="latency-timeframe-group"]:checked');
+        const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
+        const intervalSeconds = getIntervalForTimeframe(rangeMinutes);
+        
         const now = data.time.getTime();
         const lastDataPoint = latencyChart.data.datasets[0].data[latencyChart.data.datasets[0].data.length - 1];
         
