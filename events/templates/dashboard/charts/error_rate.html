@@ -7,7 +7,44 @@
 {% endwith %}
 
 <script>
-    // Chart setup
+    const errorChartColors = {
+        light: {
+            text: '#1F252E',
+            gridLines: 'rgba(107, 114, 128, 0.1)',
+            axisLabels: '#52627A',
+            errors: {
+                client: {
+                    line: '#f59e0b',
+                    fill: 'rgba(245, 158, 11, 0.08)'
+                },
+                server: {
+                    line: '#dc2626',
+                    fill: 'rgba(220, 38, 38, 0.08)'
+                }
+            }
+        },
+        dark: {
+            text: '#D1D7E0',
+            gridLines: 'rgba(209, 215, 224, 0.1)',
+            axisLabels: 'hsl(216, 20%, 25%)',
+            errors: {
+                client: {
+                    line: '#f59e0b',
+                    fill: 'rgba(245, 158, 11, 0.08)'
+                },
+                server: {
+                    line: '#dc2626',
+                    fill: 'rgba(220, 38, 38, 0.08)'
+                }
+            }
+        },
+        current() {
+            return document.documentElement.getAttribute('data-bs-theme') === 'dark' 
+                ? this.dark 
+                : this.light;
+        }
+    };
+
     const errorCtx = document.getElementById("errorRateChart").getContext("2d");
     const errorRateChart = new Chart(errorCtx, {
         type: "line",
@@ -15,8 +52,8 @@
             datasets: [{
                 label: "Client Errors (4xx)",
                 data: [],
-                borderColor: "#f59e0b",
-                backgroundColor: "rgba(245, 158, 11, 0.08)",
+                borderColor: errorChartColors.current().errors.client.line,
+                backgroundColor: errorChartColors.current().errors.client.fill,
                 fill: true,
                 tension: 0.2,
                 borderWidth: 1.5,
@@ -25,8 +62,8 @@
             }, {
                 label: "Server Errors (5xx)",
                 data: [],
-                borderColor: "#dc2626",
-                backgroundColor: "rgba(220, 38, 38, 0.08)",
+                borderColor: errorChartColors.current().errors.server.line,
+                backgroundColor: errorChartColors.current().errors.server.fill,
                 fill: true,
                 tension: 0.2,
                 borderWidth: 1.5,
@@ -45,7 +82,7 @@
                 title: {
                     display: true,
                     text: 'API Error Rates Over Time',
-                    color: '#1F252E',
+                    color: errorChartColors.current().text,
                     font: {
                         size: 16,
                         family: 'Inter, system-ui, -apple-system, sans-serif',
@@ -55,7 +92,7 @@
                 },
                 legend: {
                     labels: {
-                        color: '#1F252E',
+                        color: errorChartColors.current().text,
                         usePointStyle: true,
                         padding: 15,
                         font: {
@@ -90,11 +127,11 @@
                         onRefresh: () => {}
                     },
                     grid: {
-                        color: 'rgba(107, 114, 128, 0.1)',
+                        color: errorChartColors.current().gridLines,
                         drawBorder: false
                     },
                     ticks: {
-                        color: '#52627A',
+                        color: errorChartColors.current().axisLabels,
                         font: {
                             family: 'Inter, system-ui, -apple-system, sans-serif',
                             size: 11
@@ -103,13 +140,18 @@
                 },
                 y: {
                     beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Error Rate (%)',
+                        color: errorChartColors.current().text
+                    },
                     suggestedMax: 25,
                     grid: {
-                        color: 'rgba(107, 114, 128, 0.1)',
+                        color: errorChartColors.current().gridLines,
                         drawBorder: false
                     },
                     ticks: {
-                        color: '#52627A',
+                        color: errorChartColors.current().axisLabels,
                         font: {
                             family: 'Inter, system-ui, -apple-system, sans-serif',
                             size: 11

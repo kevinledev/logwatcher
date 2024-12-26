@@ -7,7 +7,34 @@
 {% endwith %}
 
 <script>
-    // Chart setup and configuration
+    const latencyChartColors = {
+        light: {
+            text: '#1F252E',
+            gridLines: 'rgba(107, 114, 128, 0.1)',
+            axisLabels: '#52627A',
+            latency: {
+                line: '#3b82f6',
+                fill: 'rgba(59, 130, 246, 0.08)'
+            }
+        },
+        dark: {
+            text: '#D1D7E0',
+            gridLines: 'rgba(209, 215, 224, 0.1)',
+            axisLabels: 'hsl(216, 20%, 25%)',
+            latency: {
+                line: '#3b82f6',
+                fill: 'rgba(59, 130, 246, 0.08)'
+            }
+        },
+        // Helper function to get current theme colors
+        current() {
+            return document.documentElement.getAttribute('data-bs-theme') === 'dark' 
+                ? this.dark 
+                : this.light;
+        }
+    };
+
+    // Chart setup using current theme
     const ctx = document.getElementById("latencyChart").getContext("2d");
     const latencyChart = new Chart(ctx, {
         type: "line",
@@ -15,8 +42,8 @@
             datasets: [{
                 label: "Average Latency (ms)",
                 data: [],
-                borderColor: "#3b82f6",
-                backgroundColor: "rgba(59, 130, 246, 0.08)",
+                borderColor: latencyChartColors.current().latency.line,
+                backgroundColor: latencyChartColors.current().latency.fill,
                 fill: true,
                 tension: 0.2,
                 borderWidth: 1.5,
@@ -35,7 +62,7 @@
                 title: {
                     display: true,
                     text: 'API Response Latency Over Time',
-                    color: '#1F252E',
+                    color: latencyChartColors.current().text,
                     font: {
                         size: 16,
                         family: 'Inter, system-ui, -apple-system, sans-serif',
@@ -45,7 +72,7 @@
                 },
                 legend: {
                     labels: {
-                        color: '#1F252E',
+                        color: latencyChartColors.current().text,
                         usePointStyle: true,
                         padding: 15,
                         font: {
@@ -75,11 +102,11 @@
                         onRefresh: () => {},
                     },
                     grid: {
-                        color: 'rgba(107, 114, 128, 0.1)',
+                        color: latencyChartColors.current().gridLines,
                         drawBorder: false
                     },
                     ticks: {
-                        color: '#52627A',
+                        color: latencyChartColors.current().axisLabels,
                         font: {
                             family: 'Inter, system-ui, -apple-system, sans-serif',
                             size: 11
@@ -91,13 +118,13 @@
                     title: {
                         display: true,
                         text: 'Response Time (ms)',
-                        color: '#1F252E'
+                        color: latencyChartColors.current().text
                     },
                     grid: {
-                        color: 'rgba(107, 114, 128, 0.1)',
+                        color: latencyChartColors.current().gridLines,
                     },
                     ticks: {
-                        color: '#52627A',
+                        color: latencyChartColors.current().axisLabels,
                         font: {
                             family: 'Inter, system-ui, -apple-system, sans-serif',
                             size: 11
