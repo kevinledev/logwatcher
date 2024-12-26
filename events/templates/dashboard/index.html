@@ -5,6 +5,7 @@
   <head>
     <title>Event Log</title>
     <link href="{% static 'css/halfmoon.min.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/halfmoon.modern.css' %}" rel="stylesheet" />
 
     <!-- Your other scripts -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
@@ -13,11 +14,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0/dist/chartjs-plugin-streaming.min.js"></script>
     <script src="{% static 'js/streamHandler.js' %}"></script>
 
-    
- 
-    <!-- Halfmoon modern core theme -->
-    <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.2/css/cores/halfmoon.modern.css" rel="stylesheet" integrity="sha256-DD6elX+jPmbFYPsGvzodUv2+9FHkxHlVtQi0/RJVULs=" crossorigin="anonymous">
- 
     <script>
       let isGenerating = {{ is_generating|lower }};
       const streamHandler = new StreamHandler();
@@ -126,54 +122,35 @@
     -webkit-backdrop-filter: blur(8px);
     border-bottom: var(--bs-border-width) solid var(--bs-content-border-color);
   }
-    .logo {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    font-weight: 600;
+  .logo {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 500;
     font-size: 1.125rem;
     letter-spacing: -0.02em;
     color: var(--bs-body-color);
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    position: relative;
+    padding-bottom: 2px;
   }
 
-  /* Optional dot accent */
+  /* Replace dot with underline */
+  .logo::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--bs-primary);
+  }
+
+  /* Remove the old dot accent */
   .logo::before {
-    content: "•";
-    color: var(--bs-primary);
-    font-size: 2em;
-    line-height: 0;
-    position: relative;
-    top: -0.05em;
+    display: none;
   }
 
   #liveIndicator .card{
     padding: 0.25rem 0.5rem;
-  }
-
-  .highlight-success {
-    animation: highlightSuccess 2s ease-out;
-  }
-
-  .highlight-error {
-    animation: highlightError 2s ease-out;
-  }
-
-  @keyframes highlightSuccess {
-    0% {
-      background-color: rgba(59, 130, 246, 0.2);
-    }
-    100% {
-      background-color: transparent;
-    }
-  }
-
-  @keyframes highlightError {
-    0% {
-      background-color: rgba(220, 38, 38, 0.2);
-    }
-    100% {
-      background-color: transparent;
-    }
   }
 </style>

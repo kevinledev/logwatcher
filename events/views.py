@@ -118,20 +118,6 @@ def stop_generation(request):
     logger.info("Generation stopped")
     return JsonResponse({"status": "stopped"})
 
-def get_latency_data(request):
-    window_seconds = int(request.GET.get('interval', '60'))
-    
-    now = timezone.now()
-    start_time = now - timedelta(seconds=window_seconds)
-    
-    latest_data = Event.objects.filter(
-        timestamp__gte=start_time
-    ).aggregate(avg_latency=Avg('duration_ms'))
-    
-    return JsonResponse({
-        'latest_latency': round(latest_data['avg_latency'], 2) if latest_data['avg_latency'] else 0
-    })
-
 def get_historical_latency_data(request):
     interval_seconds = int(request.GET.get("interval", "60"))
     range_minutes = int(request.GET.get('range', '15'))  # Now expecting direct minutes
@@ -180,80 +166,6 @@ def get_historical_latency_data(request):
             {
                 'x': entry['timestamp'].timestamp() * 1000,
                 'y': round(entry['avg_latency'], 2) if entry['avg_latency'] else 0
-            } for entry in aggregated_data
-        ]
-    })
-
-def get_error_rate_data(request):
-    interval_seconds = int(request.GET.get("interval", "60"))
-    range_minutes = int(request.GET.get('range', '15'))
-
-    now = timezone.now()
-    start_time = now - timedelta(minutes=range_minutes)
-
-    events = Event.objects.filter(timestamp__gte=start_time)
-
-    if interval_seconds < 60:
-        aggregated_data = (
-            events.annotate(
-                bucket=ExpressionWrapper(
-                    (ExtractHour('timestamp') * 3600 + 
-                     ExtractMinute('timestamp') * 60 + 
-                     ExtractSecond('timestamp')) / interval_seconds,
-                    output_field=IntegerField()
-                )
-            )
-            .values('bucket')
-            .annotate(
-                total_requests=models.Count('id'),
-                client_errors=models.Count(
-                    'id',
-                    filter=models.Q(status_code__gte=400, status_code__lt=500)
-                ),
-                server_errors=models.Count(
-                    'id',
-                    filter=models.Q(status_code__gte=500)
-                ),
-                timestamp=Min('timestamp')
-            )
-            .order_by('bucket')
-        )
-    else:
-        minutes_fraction = interval_seconds // 60
-        aggregated_data = (
-            events.annotate(
-                bucket=ExpressionWrapper(
-                    (ExtractHour('timestamp') * 60 + ExtractMinute('timestamp')) / minutes_fraction,
-                    output_field=IntegerField()
-                )
-            )
-            .values('bucket')
-            .annotate(
-                total_requests=models.Count('id'),
-                client_errors=models.Count(
-                    'id',
-                    filter=models.Q(status_code__gte=400, status_code__lt=500)
-                ),
-                server_errors=models.Count(
-                    'id',
-                    filter=models.Q(status_code__gte=500)
-                ),
-                timestamp=Min('timestamp')
-            )
-            .order_by('bucket')
-        )
-
-    return JsonResponse({
-        'client_errors': [
-            {
-                'x': entry['timestamp'].timestamp() * 1000,
-                'y': round((entry['client_errors'] / entry['total_requests']) * 100, 2) if entry['total_requests'] > 0 else 0
-            } for entry in aggregated_data
-        ],
-        'server_errors': [
-            {
-                'x': entry['timestamp'].timestamp() * 1000,
-                'y': round((entry['server_errors'] / entry['total_requests']) * 100, 2) if entry['total_requests'] > 0 else 0
             } for entry in aggregated_data
         ]
     })
