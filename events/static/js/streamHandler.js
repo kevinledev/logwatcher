@@ -8,45 +8,49 @@ class StreamHandler {
 
   connect() {
     console.log("[StreamHandler] Attempting to connect...");
-    if (!this.eventSource) {
-      try {
-        this.eventSource = new EventSource("/stream/events/");
 
-        this.eventSource.onerror = (error) => {
-          console.error("[StreamHandler] Connection error:", error);
-          if (!isGenerating) {
-            console.log(
-              "[StreamHandler] Generation stopped, closing connection"
-            );
-            this.disconnect();
-            return;
-          }
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
+
+    try {
+      this.eventSource = new EventSource("/stream/events/");
+
+      this.eventSource.onerror = (error) => {
+        console.error("[StreamHandler] Connection error:", error);
+        if (!isGenerating) {
           console.log(
-            "[StreamHandler] Connection state:",
-            this.eventSource.readyState
+            "[StreamHandler] Generation stopped, closing connection"
           );
-        };
+          this.disconnect();
+          return;
+        }
+        console.log(
+          "[StreamHandler] Connection state:",
+          this.eventSource.readyState
+        );
+      };
 
-        this.eventSource.addEventListener("api.request", async (e) => {
-          try {
-            const rawData = JSON.parse(e.data);
-            const formattedData = this.formatEventData(rawData);
+      this.eventSource.addEventListener("api.request", async (e) => {
+        try {
+          const rawData = JSON.parse(e.data);
+          const formattedData = this.formatEventData(rawData);
 
-            this.subscribers.forEach((subscriber) => {
-              if (typeof subscriber.callback === "function") {
-                subscriber.callback(formattedData);
-              }
-            });
-          } catch (error) {
-            console.error(
-              "[StreamHandler] Error processing stream data:",
-              error
-            );
-          }
-        });
-      } catch (error) {
-        console.error("[StreamHandler] Failed to create EventSource:", error);
-      }
+          this.subscribers.forEach((subscriber) => {
+            if (typeof subscriber.callback === "function") {
+              subscriber.callback(formattedData);
+            }
+          });
+        } catch (error) {
+          console.error(
+            "[StreamHandler] Error processing stream data:",
+            error
+          );
+        }
+      });
+    } catch (error) {
+      console.error("[StreamHandler] Failed to create EventSource:", error);
     }
   }
 
@@ -61,8 +65,6 @@ class StreamHandler {
         const response = await fetch("/stream/stop/");
         const data = await response.json();
         console.log("[StreamHandler] Stop request response:", data);
-
-        this.subscribers.clear();
       } catch (error) {
         console.error("[StreamHandler] Error stopping stream:", error);
       }
@@ -73,7 +75,7 @@ class StreamHandler {
     const id = Math.random().toString(36);
     this.subscribers.set(id, { callback, options });
     
-    if (isGenerating && !this.eventSource) {
+    if (isGenerating) {
       this.connect();
     }
     return id;
