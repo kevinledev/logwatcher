@@ -5,7 +5,7 @@
   <head>
     <title>Event Log</title>
     <link href="{% static 'css/halfmoon.min.css' %}" rel="stylesheet" />
-    {% comment %} <link href="{% static 'css/halfmoon.modern.css' %}" rel="stylesheet" /> {% endcomment %}
+    <link href="{% static 'css/halfmoon.modern.css' %}" rel="stylesheet" />
 
     <!-- Your other scripts -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
@@ -13,6 +13,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.1/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0/dist/chartjs-plugin-streaming.min.js"></script>
     <script src="{% static 'js/streamHandler.js' %}"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 
     <script>
       let isGenerating = {{ is_generating|lower }};
@@ -25,13 +28,18 @@
     <div>
       <nav class="navbar sticky-top">
         <div class="container-fluid px-4">
-          <span class="logo">Log Watcher</span>
+          <a href="{% url 'dashboard' %}" class="navbar-brand logo">
+            LogWatcher
+          </a>
           <div class="d-flex align-items-center gap-2">
             <!-- Live Indicator -->
             <div id="liveIndicator">
-              <span class="card d-flex align-items-center flex-row px-2 py-1">
+              <span class="card d-flex align-items-center flex-row px-2 py-1"
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="bottom"
+                    data-bs-title="{% if is_generating %}Stream is generating data. Click 'Stop Stream' to stop{% else %}Stream has stopped. Click 'Start Stream' to begin{% endif %}">
                 {% if is_generating %}
-                  <span class="spinner-grow spinner-grow-sm me-1 text-success" role="status" aria-hidden="true"></span>
+                  <span class="spinner-grow spinner-grow-sm me-1 text-primary" role="status" aria-hidden="true"></span>
                 {% else %}
                   <span class="me-1 text-danger">●</span>
                 {% endif %}
@@ -105,13 +113,26 @@
           isGenerating = !isGenerating;
           console.log(`[Toggle] New state: ${isGenerating}`);
 
+          const cardElement = liveIndicator.querySelector('.card');
+          
+          // Destroy existing tooltip
+          const oldTooltip = bootstrap.Tooltip.getInstance(cardElement);
+          if (oldTooltip) {
+            oldTooltip.dispose();
+          }
+
           if (isGenerating) {
             streamHandler.connect();
-            liveIndicator.querySelector('.card').innerHTML = '<span class="spinner-grow spinner-grow-sm me-1 text-success" role="status" aria-hidden="true"></span> Live';
+            cardElement.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1 text-primary" role="status" aria-hidden="true"></span> Live';
+            cardElement.setAttribute('data-bs-title', "Stream is generating data. Click 'Stop Stream' to stop");
           } else {
             await streamHandler.disconnect();
-            liveIndicator.querySelector('.card').innerHTML = '<span class="me-1 text-danger">●</span> Stopped';
+            cardElement.innerHTML = '<span class="me-1 text-danger">●</span> Stopped';
+            cardElement.setAttribute('data-bs-title', "Stream has stopped. Click 'Start Stream' to begin");
           }
+
+          // Create new tooltip
+          new bootstrap.Tooltip(cardElement);
 
           btn.textContent = isGenerating ? 'Stop Stream' : 'Start Stream';
           btn.classList.toggle('btn-danger');
@@ -138,6 +159,12 @@
         if (errorRateChart) {
           updateChartColors(errorRateChart, errorChartColors.current());
         }
+
+        // Initialize all tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+          return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
       });
 
       function toggleTheme() {
@@ -175,7 +202,7 @@
         chart.options.scales.y.ticks.color = colors.axisLabels;
         chart.options.scales.y.title.color = colors.text;
 
-        chart.update('none'); // Update without animation
+        chart.update(); // Update without animation
       }
     </script>
   </body>
@@ -193,7 +220,7 @@
     font-family: 'Roboto', sans-serif;
     font-weight: 500;
     font-size: 1.125rem;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.05em;
     color: var(--bs-body-color);
     display: flex;
     align-items: center;
@@ -201,11 +228,11 @@
     padding-bottom: 2px;
   }
 
-  /* Replace dot with underline */
+  /* Adjust underline position */
   .logo::after {
     content: "";
     position: absolute;
-    bottom: 0;
+    bottom: 1px;
     left: 0;
     width: 100%;
     height: 2px;
@@ -255,5 +282,9 @@
     font-size: 0.875rem;
     background: var(--bs-tertiary-bg);
     border: var(--bs-border-width) solid var(--bs-border-color);
+  }
+
+  #liveIndicator .card:hover {
+    cursor: unset;
   }
 </style>
