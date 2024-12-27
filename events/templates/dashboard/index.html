@@ -1,7 +1,7 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="en" data-bs-core="modern" data-bs-theme="dark">
+<html lang="en" data-bs-core="modern" data-bs-theme="light">
   <head>
     <title>Event Log</title>
     <link href="{% static 'css/halfmoon.min.css' %}" rel="stylesheet" />
@@ -23,13 +23,13 @@
   </head>
   <body>
     <div>
-      <nav class="navbar expand-md sticky-top">
-        <div class="container-fluid px-4 py-2">
+      <nav class="navbar sticky-top">
+        <div class="container-fluid px-4">
           <span class="logo">Log Watcher</span>
           <div class="d-flex align-items-center gap-2">
             <!-- Live Indicator -->
             <div id="liveIndicator">
-              <span class="card  d-flex align-items-center flex-row">
+              <span class="card d-flex align-items-center flex-row px-2 py-1">
                 {% if is_generating %}
                   <span class="spinner-grow spinner-grow-sm me-1 text-success" role="status" aria-hidden="true"></span>
                 {% else %}
@@ -38,12 +38,22 @@
                 {% if is_generating %}Live{% else %}Stopped{% endif %}
               </span>
             </div>
+
+            <!-- Stream Control Button -->
             <button
               id="generateBtn"
-              class="btn w-full {% if is_generating %}btn-danger{% else %}btn-primary{% endif %}"
+              class="btn {% if is_generating %}btn-danger{% else %}btn-primary{% endif %}"
               onclick="toggleGeneration()"
-              >{% if is_generating %}Stop Stream{% else %}Start Stream{% endif %}
+            >
+              {% if is_generating %}Stop Stream{% else %}Start Stream{% endif %}
             </button>
+            
+            <!-- Theme Toggle -->
+            <button class="btn p-0" id="themeToggle" onclick="toggleTheme()">
+              <i class="bi bi-sun-fill" data-theme-icon="light"></i>
+              <i class="bi bi-moon-stars-fill" data-theme-icon="dark"></i>
+            </button>
+
           </div>
         </div>
       </nav>
@@ -111,6 +121,63 @@
         }
       }
     </script>
+
+    <script>
+      // Initialize theme from localStorage
+      document.addEventListener('DOMContentLoaded', () => {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        
+        // Update charts if they exist
+        const latencyChart = Chart.getChart('latencyChart');
+        const errorRateChart = Chart.getChart('errorRateChart');
+        
+        if (latencyChart) {
+          updateChartColors(latencyChart, latencyChartColors.current());
+        }
+        if (errorRateChart) {
+          updateChartColors(errorRateChart, errorChartColors.current());
+        }
+      });
+
+      function toggleTheme() {
+        const html = document.documentElement;
+        const newTheme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-bs-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        
+        // Get charts from Chart.js registry
+        const latencyChart = Chart.getChart('latencyChart');
+        const errorRateChart = Chart.getChart('errorRateChart');
+        
+        // Update latency chart colors
+        if (latencyChart) {
+          const colors = latencyChartColors.current();
+          updateChartColors(latencyChart, colors);
+        }
+        
+        // Update error rate chart colors
+        if (errorRateChart) {
+          const colors = errorChartColors.current();
+          updateChartColors(errorRateChart, colors);
+        }
+      }
+
+      function updateChartColors(chart, colors) {
+        // Update title and legend colors
+        chart.options.plugins.title.color = colors.text;
+        chart.options.plugins.legend.labels.color = colors.text;
+
+        // Update axes colors
+        chart.options.scales.x.grid.color = colors.gridLines;
+        chart.options.scales.x.ticks.color = colors.axisLabels;
+        chart.options.scales.y.grid.color = colors.gridLines;
+        chart.options.scales.y.ticks.color = colors.axisLabels;
+        chart.options.scales.y.title.color = colors.text;
+
+        chart.update('none'); // Update without animation
+      }
+    </script>
   </body>
 </html>
 
@@ -152,5 +219,41 @@
 
   #liveIndicator .card{
     padding: 0.25rem 0.5rem;
+  }
+
+  /* Theme toggle icons */
+  [data-theme-icon] {
+    display: none;
+  }
+  
+  [data-bs-theme="light"] [data-theme-icon="dark"],
+  [data-bs-theme="dark"] [data-theme-icon="light"] {
+    display: inline-block;
+  }
+
+  #themeToggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    color: var(--bs-body-color);
+    opacity: 0.75;
+    transition: opacity 0.2s;
+  }
+
+  #themeToggle:hover {
+    opacity: 1;
+    background: none;
+  }
+
+  #themeToggle i {
+    font-size: 1.25rem;
+  }
+
+  #liveIndicator .card {
+    font-size: 0.875rem;
+    background: var(--bs-tertiary-bg);
+    border: var(--bs-border-width) solid var(--bs-border-color);
   }
 </style>
