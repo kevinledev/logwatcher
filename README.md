@@ -95,12 +95,6 @@ The real-time functionality went through several iterations to reach its current
   - NGINX configuration for event streams
   - Migration from Django's default SQLite db to PostgreSQL
 
-### UI/UX Improvements
-- Theme Implementation
-  - Dark/light mode toggle
-  - Dynamic chart color updates
-  - Halfmoon CSS integration
-
 ### Debugging Journey
 - Chart Rendering
   - Fixed tooltip compatibility issues
