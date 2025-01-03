@@ -1,0 +1,97 @@
+<button class="btn p-0" id="themeToggle" onclick="toggleTheme()">
+  <i class="bi bi-sun-fill" data-theme-icon="light"></i>
+  <i class="bi bi-moon-stars-fill" data-theme-icon="dark"></i>
+</button>
+
+<script>
+  // Initialize theme from localStorage
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    
+    // Update charts if they exist
+    const latencyChart = Chart.getChart('latencyChart');
+    const errorRateChart = Chart.getChart('errorRateChart');
+    const throughputChart = Chart.getChart('throughputChart');
+    
+    if (latencyChart) {
+      updateChartColors(latencyChart, latencyChartColors.current());
+    }
+    if (errorRateChart) {
+      updateChartColors(errorRateChart, errorChartColors.current());
+    }
+    if (throughputChart) {
+      updateChartColors(throughputChart, throughputChartColors.current());
+    }
+  });
+
+  function toggleTheme() {
+    const html = document.documentElement;
+    const newTheme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-bs-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    // Get charts from Chart.js registry
+    const latencyChart = Chart.getChart('latencyChart');
+    const errorRateChart = Chart.getChart('errorRateChart');
+    const throughputChart = Chart.getChart('throughputChart');
+    
+    // Update charts colors
+    if (latencyChart) {
+      updateChartColors(latencyChart, latencyChartColors.current());
+    }
+    if (errorRateChart) {
+      updateChartColors(errorRateChart, errorChartColors.current());
+    }
+    if (throughputChart) {
+      updateChartColors(throughputChart, throughputChartColors.current());
+    }
+  }
+
+  function updateChartColors(chart, colors) {
+    // Update title and legend colors
+    chart.options.plugins.title.color = colors.text;
+    chart.options.plugins.legend.labels.color = colors.text;
+
+    // Update axes colors
+    chart.options.scales.x.grid.color = colors.gridLines;
+    chart.options.scales.x.ticks.color = colors.axisLabels;
+    chart.options.scales.y.grid.color = colors.gridLines;
+    chart.options.scales.y.ticks.color = colors.axisLabels;
+    chart.options.scales.y.title.color = colors.text;
+
+    chart.update("quiet");
+  }
+</script>
+
+<style>
+  /* Theme toggle icons */
+  [data-theme-icon] {
+    display: none;
+  }
+  
+  [data-bs-theme="light"] [data-theme-icon="dark"],
+  [data-bs-theme="dark"] [data-theme-icon="light"] {
+    display: inline-block;
+  }
+
+  #themeToggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    color: var(--bs-body-color);
+    opacity: 0.75;
+    transition: opacity 0.2s;
+  }
+
+  #themeToggle:hover {
+    opacity: 1;
+    background: none;
+  }
+
+  #themeToggle i {
+    font-size: 1.125rem;
+  }
+</style>

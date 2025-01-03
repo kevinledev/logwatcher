@@ -1,0 +1,81 @@
+<nav class="navbar sticky-top">
+  <div class="container-fluid px-4">
+    <a href="{% url 'dashboard' %}" class="navbar-brand logo">
+      📡 logwatcher
+    </a>
+    <div class="d-flex align-items-center gap-2">
+      <!-- Live Indicator -->
+      <div id="liveIndicator">
+        <span class="card d-flex align-items-center flex-row px-2 py-1"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              data-bs-title="{% if is_generating %}Stream is generating data. Click 'Stop Stream' to stop{% else %}Stream has stopped. Click 'Start Stream' to begin{% endif %}">
+          {% if is_generating %}
+            <span class="spinner-grow spinner-grow-sm me-1 text-primary" role="status" aria-hidden="true"></span>
+          {% else %}
+            <span class="me-1 text-danger">●</span>
+          {% endif %}
+          {% if is_generating %}Live{% else %}Stopped{% endif %}
+        </span>
+      </div>
+
+      <!-- Stream Control Button -->
+      <button
+        id="generateBtn"
+        class="btn {% if is_generating %}btn-danger{% else %}btn-primary{% endif %}"
+        onclick="toggleGeneration()"
+      >
+        {% if is_generating %}Stop Stream{% else %}Start Stream{% endif %}
+      </button>
+      
+      <!-- Theme Toggle -->
+      {% include "dashboard/theme_toggle.html" %}
+
+      <!-- Info Button -->
+      <button class="btn p-0" data-bs-toggle="modal" data-bs-target="#readmeModal">
+        <i class="bi bi-info-circle" style="font-size: 1.125rem; opacity: 0.75"></i>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<style>
+    .navbar{
+    background-color: hsla(var(--bs-body-bg-hsl), 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: var(--bs-border-width) solid var(--bs-content-border-color);
+  }
+  .logo {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 500;
+    font-size: 1.125rem;
+    letter-spacing: 0.05em;
+    color: var(--bs-body-color);
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding-bottom: 2px;
+    margin-bottom: 2px;
+  }
+
+  /* Adjust underline position */
+  .logo::after {
+    content: "";
+    position: absolute;
+    bottom: 0px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--bs-primary);
+  }
+
+  /* Remove the old dot accent */
+  .logo::before {
+    display: none;
+  }
+
+  #liveIndicator .card{
+    padding: 0.25rem 0.5rem;
+  }
+</style>
