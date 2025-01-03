@@ -3,7 +3,50 @@ class StreamHandler {
     console.log("[StreamHandler] Initializing...");
     this.subscribers = new Map();
     this.eventSource = null;
+    
+    // Add broadcast channel
+    this.broadcastChannel = new BroadcastChannel('stream_state');
+    this.broadcastChannel.onmessage = (event) => {
+      if (event.data.type === 'stream_state_change') {
+        isGenerating = event.data.isGenerating;
+        if (isGenerating) {
+          this.connect();
+        } else {
+          this.disconnect();
+        }
+        this.updateNavbarIndicator();
+      }
+    };
+    
     console.log("[StreamHandler] Initialized successfully");
+  }
+
+  // Add method to update UI
+  updateNavbarIndicator() {
+    const btn = document.getElementById('generateBtn');
+    const liveIndicator = document.getElementById('liveIndicator');
+    const cardElement = liveIndicator.querySelector('.card');
+    
+    // Update button
+    btn.textContent = isGenerating ? 'Stop Stream' : 'Start Stream';
+    btn.classList.toggle('btn-danger', isGenerating);
+    btn.classList.toggle('btn-primary', !isGenerating);
+    
+    // Update indicator
+    if (isGenerating) {
+      cardElement.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1 text-primary" role="status" aria-hidden="true"></span> Live';
+      cardElement.setAttribute('data-bs-title', "Stream is generating data. Click 'Stop Stream' to stop");
+    } else {
+      cardElement.innerHTML = '<span class="me-1 text-danger">●</span> Stopped';
+      cardElement.setAttribute('data-bs-title', "Stream has stopped. Click 'Start Stream' to begin");
+    }
+    
+    // Update tooltip
+    const oldTooltip = bootstrap.Tooltip.getInstance(cardElement);
+    if (oldTooltip) {
+      oldTooltip.dispose();
+    }
+    new bootstrap.Tooltip(cardElement);
   }
 
   connect() {
@@ -36,12 +79,25 @@ class StreamHandler {
         try {
           const rawData = JSON.parse(e.data);
           const formattedData = this.formatEventData(rawData);
-
-          this.subscribers.forEach((subscriber) => {
-            if (typeof subscriber.callback === "function") {
-              subscriber.callback(formattedData);
-            }
-          });
+          
+          const now = formattedData.time.getTime();
+          
+          // Synchronized update check
+          if (!this.lastUpdateTime || (now - this.lastUpdateTime) >= this.updateInterval) {
+            this.subscribers.forEach((subscriber) => {
+              if (typeof subscriber.callback === "function") {
+                subscriber.callback(formattedData, true); // true indicates it's an update boundary
+              }
+            });
+            this.lastUpdateTime = now;
+          } else {
+            // Just collect data without updating charts
+            this.subscribers.forEach((subscriber) => {
+              if (typeof subscriber.callback === "function") {
+                subscriber.callback(formattedData, false); // false indicates no update needed
+              }
+            });
+          }
         } catch (error) {
           console.error(
             "[StreamHandler] Error processing stream data:",

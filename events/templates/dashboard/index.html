@@ -1,22 +1,27 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="en" data-bs-core="modern" data-bs-theme="light">
+<html lang="en" data-bs-core="modern" data-bs-theme="dark">
   <head>
     <title>logwatcher</title>
+    <!-- Bootstrap + Halfmoon -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Halfmoon -->
     <link href="{% static 'css/halfmoon.min.css' %}" rel="stylesheet" />
     <link href="{% static 'css/halfmoon.modern.css' %}" rel="stylesheet" />
 
-    <!-- Your other scripts -->
+    <!-- HTMX-->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.1/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0/dist/chartjs-plugin-streaming.min.js"></script>
+
+
+    <!-- Stream Handler -->
     <script src="{% static 'js/streamHandler.js' %}"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-
     <script>
       let isGenerating = {{ is_generating|lower }};
       const streamHandler = new StreamHandler();
@@ -28,47 +33,7 @@
   </head>
   <body>
     <div>
-      <nav class="navbar sticky-top">
-        <div class="container-fluid px-4">
-          <a href="{% url 'dashboard' %}" class="navbar-brand logo">
-            📡 logwatcher
-          </a>
-          <div class="d-flex align-items-center gap-2">
-            <!-- Live Indicator -->
-            <div id="liveIndicator">
-              <span class="card d-flex align-items-center flex-row px-2 py-1"
-                    data-bs-toggle="tooltip"
-                    data-bs-placement="bottom"
-                    data-bs-title="{% if is_generating %}Stream is generating data. Click 'Stop Stream' to stop{% else %}Stream has stopped. Click 'Start Stream' to begin{% endif %}">
-                {% if is_generating %}
-                  <span class="spinner-grow spinner-grow-sm me-1 text-primary" role="status" aria-hidden="true"></span>
-                {% else %}
-                  <span class="me-1 text-danger">●</span>
-                {% endif %}
-                {% if is_generating %}Live{% else %}Stopped{% endif %}
-              </span>
-            </div>
-
-            <!-- Stream Control Button -->
-            <button
-              id="generateBtn"
-              class="btn {% if is_generating %}btn-danger{% else %}btn-primary{% endif %}"
-              onclick="toggleGeneration()"
-            >
-              {% if is_generating %}Stop Stream{% else %}Start Stream{% endif %}
-            </button>
-            
-            <!-- Theme Toggle -->
-            <button class="btn p-0" id="themeToggle" onclick="toggleTheme()">
-              <i class="bi bi-sun-fill" data-theme-icon="light"></i>
-              <i class="bi bi-moon-stars-fill" data-theme-icon="dark"></i>
-            </button>
-
-          </div>
-        </div>
-      </nav>
-
-
+      {% include "dashboard/navbar.html" %}
         <div class="container-fluid p-4">
           <div class="row g-3 mb-4">
             <div class="col-12 col-xl-6">
@@ -85,6 +50,12 @@
                 </div>
               </div>
             </div>
+          <div class="col-12 col-xl-6">
+            <div class="card h-full">
+                <div class="p-3">
+                    {% include "dashboard/charts/throughput.html" %}
+                </div>
+            </div>
           </div>
 
           <!-- Event Table -->
@@ -94,200 +65,8 @@
                hx-trigger="load"
                hx-swap="innerHTML">
           </div>
-        
         </div>
       </div>
-
-
-    <!-- Generation controls -->
-    <script>
-      async function toggleGeneration() {
-        const btn = document.getElementById('generateBtn');
-        const liveIndicator = document.getElementById('liveIndicator');
-        const endpoint = isGenerating ? '/stream/stop/' : '/stream/start/';
-
-        try {
-          console.log(`[Toggle] Current state: ${isGenerating}, calling ${endpoint}`);
-          const response = await fetch(endpoint);
-          const data = await response.json();
-          console.log('[Toggle] Server response:', data);
-          
-          isGenerating = !isGenerating;
-          console.log(`[Toggle] New state: ${isGenerating}`);
-
-          const cardElement = liveIndicator.querySelector('.card');
-          
-          // Destroy existing tooltip
-          const oldTooltip = bootstrap.Tooltip.getInstance(cardElement);
-          if (oldTooltip) {
-            oldTooltip.dispose();
-          }
-
-          if (isGenerating) {
-            streamHandler.connect();
-            cardElement.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1 text-primary" role="status" aria-hidden="true"></span> Live';
-            cardElement.setAttribute('data-bs-title', "Stream is generating data. Click 'Stop Stream' to stop");
-          } else {
-            await streamHandler.disconnect();
-            cardElement.innerHTML = '<span class="me-1 text-danger">●</span> Stopped';
-            cardElement.setAttribute('data-bs-title', "Stream has stopped. Click 'Start Stream' to begin");
-          }
-
-          // Create new tooltip
-          new bootstrap.Tooltip(cardElement);
-
-          btn.textContent = isGenerating ? 'Stop Stream' : 'Start Stream';
-          btn.classList.toggle('btn-danger');
-          btn.classList.toggle('btn-primary');
-        } catch (error) {
-          console.error('[Toggle] Error:', error);
-        }
-      }
-    </script>
-
-    <script>
-      // Initialize theme from localStorage
-      document.addEventListener('DOMContentLoaded', () => {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-bs-theme', savedTheme);
-        
-        // Update charts if they exist
-        const latencyChart = Chart.getChart('latencyChart');
-        const errorRateChart = Chart.getChart('errorRateChart');
-        
-        if (latencyChart) {
-          updateChartColors(latencyChart, latencyChartColors.current());
-        }
-        if (errorRateChart) {
-          updateChartColors(errorRateChart, errorChartColors.current());
-        }
-
-        // Initialize all tooltips
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function(tooltipTriggerEl) {
-          return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-      });
-
-      function toggleTheme() {
-        const html = document.documentElement;
-        const newTheme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
-        html.setAttribute('data-bs-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        
-        // Get charts from Chart.js registry
-        const latencyChart = Chart.getChart('latencyChart');
-        const errorRateChart = Chart.getChart('errorRateChart');
-        
-        // Update latency chart colors
-        if (latencyChart) {
-          const colors = latencyChartColors.current();
-          updateChartColors(latencyChart, colors);
-        }
-        
-        // Update error rate chart colors
-        if (errorRateChart) {
-          const colors = errorChartColors.current();
-          updateChartColors(errorRateChart, colors);
-        }
-      }
-
-      function updateChartColors(chart, colors) {
-        // Update title and legend colors
-        chart.options.plugins.title.color = colors.text;
-        chart.options.plugins.legend.labels.color = colors.text;
-
-        // Update axes colors
-        chart.options.scales.x.grid.color = colors.gridLines;
-        chart.options.scales.x.ticks.color = colors.axisLabels;
-        chart.options.scales.y.grid.color = colors.gridLines;
-        chart.options.scales.y.ticks.color = colors.axisLabels;
-        chart.options.scales.y.title.color = colors.text;
-
-        chart.update(); // Update without animation
-      }
-    </script>
+    {% include "dashboard/modal.html" %}
   </body>
 </html>
-
-
-<style>
-  .navbar{
-    background-color: hsla(var(--bs-body-bg-hsl), 0.75);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-bottom: var(--bs-border-width) solid var(--bs-content-border-color);
-  }
-  .logo {
-    font-family: 'Roboto', sans-serif;
-    font-weight: 500;
-    font-size: 1.125rem;
-    letter-spacing: 0.05em;
-    color: var(--bs-body-color);
-    display: flex;
-    align-items: center;
-    position: relative;
-    padding-bottom: 2px;
-    margin-bottom: 2px;
-  }
-
-  /* Adjust underline position */
-  .logo::after {
-    content: "";
-    position: absolute;
-    bottom: 0px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background-color: var(--bs-primary);
-  }
-
-  /* Remove the old dot accent */
-  .logo::before {
-    display: none;
-  }
-
-  #liveIndicator .card{
-    padding: 0.25rem 0.5rem;
-  }
-
-  /* Theme toggle icons */
-  [data-theme-icon] {
-    display: none;
-  }
-  
-  [data-bs-theme="light"] [data-theme-icon="dark"],
-  [data-bs-theme="dark"] [data-theme-icon="light"] {
-    display: inline-block;
-  }
-
-  #themeToggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    color: var(--bs-body-color);
-    opacity: 0.75;
-    transition: opacity 0.2s;
-  }
-
-  #themeToggle:hover {
-    opacity: 1;
-    background: none;
-  }
-
-  #themeToggle i {
-    font-size: 1.125rem;
-  }
-
-  #liveIndicator .card {
-    font-size: 0.875rem;
-    background: var(--bs-tertiary-bg);
-    border: var(--bs-border-width) solid var(--bs-border-color);
-  }
-
-  #liveIndicator .card:hover {
-    cursor: unset;
-  }
-</style>

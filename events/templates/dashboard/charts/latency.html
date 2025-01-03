@@ -20,7 +20,7 @@
         dark: {
             text: '#D1D7E0',
             gridLines: 'rgba(209, 215, 224, 0.1)',
-            axisLabels: 'hsl(216, 20%, 25%)',
+            axisLabels: 'hsl(216, 20%, 40%)',
             latency: {
                 line: '#3b82f6',
                 fill: 'rgba(59, 130, 246, 0.08)'
@@ -179,7 +179,7 @@
         
         if (!lastDataPoint || (now - lastDataPoint.x) >= intervalSeconds * 1000) {
             latencyChart.data.datasets[0].data.push({
-                x: data.time,
+                x: now,
                 y: data.duration
             });
             latencyChart.update();

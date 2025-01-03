@@ -1,5 +1,5 @@
 <div class="card-body table-responsive">
-  <table class="table table-hover table-sm">
+  <table class="table table-hover table">
     <thead>
       <tr>
         <th style="width: 20%">Timestamp</th>
@@ -120,6 +120,7 @@
         const newRow = document.createElement("tr");
         
         const isError = data.status >= 400;
+        newRow.classList.add('row-enter');
         newRow.classList.add(isError ? 'highlight-error' : 'highlight-success');
 
         newRow.innerHTML = `
@@ -148,29 +149,91 @@
 </script>
 
 <style>
-  .highlight-success {
-    animation: highlightSuccess 2s ease-out;
-  }
+/* Table styling */
+.table {
+    --bs-table-hover-bg: rgba(var(--bs-emphasis-color-rgb), 0.04);
+}
 
-  .highlight-error {
-    animation: highlightError 2s ease-out;
-  }
+/* Header styling */
+.table thead th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 8px;
+}
 
-  @keyframes highlightSuccess {
+/* Body styling */
+.table tbody td {
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    font-size: 0.875rem;
+    vertical-align: middle;
+}
+
+/* Method column styling */
+.table td:nth-child(2) {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 0.75rem;
+    padding-top: 13px;
+    padding-bottom: 13px;
+}
+
+/* Status code styling */
+.table td:nth-child(4) {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-weight: 500;
+    padding-top: 13px;
+    padding-bottom: 13px;
+}
+
+/* Duration styling */
+.table td:nth-child(5) {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 0.75rem;
+    padding-top: 13px;
+    padding-bottom: 13px;
+}
+
+/* Animation styles */
+.row-enter.highlight-success {
+    animation: highlightSuccess 2s ease-out forwards;
+}
+
+.row-enter.highlight-error {
+    animation: highlightError 2s ease-out forwards;
+}
+
+@keyframes highlightSuccess {
     0% {
-      background-color: rgba(59, 130, 246, 0.2);
+        background-color: rgba(59, 130, 246, 0.2);
     }
     100% {
-      background-color: transparent;
+        background-color: transparent;
     }
-  }
+}
 
-  @keyframes highlightError {
+@keyframes highlightError {
     0% {
-      background-color: rgba(220, 38, 38, 0.2);
+        background-color: rgba(220, 38, 38, 0.2);
     }
     100% {
-      background-color: transparent;
+        background-color: transparent;
     }
-  }
+}
+
+/* Text slide animation */
+.row-enter td {
+    animation: slideInText 0.3s ease-out forwards;
+}
+
+@keyframes slideInText {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 </style>

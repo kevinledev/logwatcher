@@ -1,0 +1,50 @@
+<!-- README Modal -->
+<div class="modal modal-lg fade" id="readmeModal" tabindex="-1" aria-labelledby="readmeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="readmeModalLabel">What is logwatcher?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body markdown-body">
+        {{ readme_content|safe }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+
+  .modal-header{
+    padding-left:2rem;
+    padding-right:2rem;
+  }
+  
+  .markdown-body {
+    font-family: -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  .markdown-body h1 { font-size: 2em; margin-bottom: 16px; }
+  .markdown-body h2 { font-size: 1.5em; margin: 24px 0 16px; }
+  .markdown-body h3 { font-size: 1.25em; margin: 20px 0 12px; }
+  
+  .markdown-body code {
+    padding: 0.2em 0.4em;
+    background-color: var(--bs-tertiary-bg);
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, monospace;
+    font-size: 85%;
+  }
+
+  .markdown-body pre {
+    padding: 16px;
+    overflow: auto;
+    background-color: var(--bs-tertiary-bg);
+    border-radius: 6px;
+  }
+</style>
