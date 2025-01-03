@@ -16,7 +16,6 @@ A real-time dashboard that demonstrates modern web monitoring and logging using 
 ### Backend
 - Django
 - PostgreSQL
-- Django's built-in async capabilities for event streaming
 
 ### Frontend
 - Django Templates
