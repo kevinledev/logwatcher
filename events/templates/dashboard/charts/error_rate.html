@@ -172,13 +172,13 @@
     }
 
     // Initialize with historical data
-    loadHistoricalErrorData('quiet');
+    loadHistoricalErrorData();
 
     // Event listeners for timeframe controls
     document.querySelectorAll('input[name="error-timeframe-group"]').forEach((radioBtn) => {
         radioBtn.addEventListener("change", (e) => {
             errorRateChart.options.scales.x.realtime.duration = parseInt(e.target.value) * 60 * 1000;
-            loadHistoricalErrorData('quiet');
+            loadHistoricalErrorData();
         });
     });
 
@@ -191,7 +191,7 @@
         const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
         const intervalSeconds = getIntervalForTimeframe(rangeMinutes);
         
-        const now = data.time.getTime('quiet');
+        const now = data.time.getTime();
         
         // Add new request to window
         requestWindow.push({
@@ -222,14 +222,14 @@
                     y: (serverErrors / totalRequests) * 100
                 });
 
-                errorRateChart.update('quiet');
+                errorRateChart.update();
             }
         }
     });
 
     document.addEventListener('generationStateChanged', function(e) {
         if (!e.detail.isGenerating) {
-            errorRateChart.update('quiet');
+            errorRateChart.update();
         }
     });
 
@@ -242,11 +242,11 @@
             const response = await fetch(
                 `/api/historical-error-data/?interval=${intervalSeconds}&range=${rangeMinutes}`
             );
-            const data = await response.json('quiet');
+            const data = await response.json();
             
             errorRateChart.data.datasets[0].data = data.client_errors;
             errorRateChart.data.datasets[1].data = data.server_errors;
-            errorRateChart.update('quiet');
+            errorRateChart.update();
         } catch (error) {
             console.error("Error loading historical error data:", error);
         }

@@ -150,7 +150,7 @@
             .then((response) => response.json())
             .then((data) => {
                 latencyChart.data.datasets[0].data = data.data;
-                latencyChart.update('quiet');
+                latencyChart.update();
             })
             .catch((error) => {
                 console.error("Error loading historical data:", error);
@@ -179,16 +179,16 @@
         
         if (!lastDataPoint || (now - lastDataPoint.x) >= intervalSeconds * 1000) {
             latencyChart.data.datasets[0].data.push({
-                x: data.time,
+                x: now,
                 y: data.duration
             });
-            latencyChart.update('quiet');
+            latencyChart.update();
         }
     });
 
     document.addEventListener('generationStateChanged', function(e) {
         if (!e.detail.isGenerating) {
-            latencyChart.update('quiet');
+            latencyChart.update();
         }
     });
 </script>

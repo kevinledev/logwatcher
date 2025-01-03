@@ -157,36 +157,36 @@
         
         const now = data.time.getTime();
         
-        // Add new request to window
+        // Calculate the current bucket's start time
+        const currentBucket = Math.floor(now / (intervalSeconds * 1000)) * intervalSeconds * 1000;
+        
+        // Add new request to window with its bucket
         throughputRequestWindow.push({
-            timestamp: now
+            timestamp: now,
+            bucket: currentBucket
         });
 
-        // Remove requests outside the window
-        const windowDuration = throughputChart.options.scales.x.realtime.duration;
-        throughputRequestWindow = throughputRequestWindow.filter(req => now - req.timestamp <= windowDuration);
+        // Keep only requests within the chart duration
+        const windowStart = now - throughputChart.options.scales.x.realtime.duration;
+        throughputRequestWindow = throughputRequestWindow.filter(req => 
+            req.timestamp >= windowStart
+        );
 
-        // Calculate current bucket time
-        const currentBucketTime = Math.floor(now / (intervalSeconds * 1000)) * (intervalSeconds * 1000);
-
-        // Only update when we move to a new time bucket
-        if (currentBucketTime !== lastBucketTime) {
-            // Count requests in the current interval
-            const bucketRequests = throughputRequestWindow.filter(req => 
-                req.timestamp >= currentBucketTime - (intervalSeconds * 1000) &&
-                req.timestamp < currentBucketTime
+        const lastDataPoint = throughputChart.data.datasets[0].data[throughputChart.data.datasets[0].data.length - 1];
+        
+        if (!lastDataPoint || (now - lastDataPoint.x) >= intervalSeconds * 1000) {
+            // Count requests in the current bucket only
+            const requestsInBucket = throughputRequestWindow.filter(req => 
+                req.bucket === currentBucket
             ).length;
-
-            // Calculate requests per minute
-            const requestsPerMinute = (bucketRequests / intervalSeconds) * 60;
+            
+            const requestsPerMinute = (requestsInBucket * 60) / intervalSeconds;
             
             throughputChart.data.datasets[0].data.push({
-                x: currentBucketTime,
+                x: currentBucket,  // Use bucket time instead of now
                 y: requestsPerMinute
             });
-
-            lastBucketTime = currentBucketTime;
-            throughputChart.update('quiet');
+            throughputChart.update();
         }
     });
     // Load historical data
@@ -202,7 +202,7 @@
             const data = await response.json();
             
             throughputChart.data.datasets[0].data = data.data;
-            throughputChart.update('quiet');
+            throughputChart.update();
         } catch (error) {
             console.error("Error loading historical throughput data:", error);
         }
@@ -221,7 +221,7 @@
 
     document.addEventListener('generationStateChanged', function(e) {
         if (!e.detail.isGenerating) {
-            throughputChart.update('quiet');
+            throughputChart.update();
         }
     });
 </script> 
