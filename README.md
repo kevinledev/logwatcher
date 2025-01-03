@@ -1,6 +1,6 @@
 # logwatcher
 
-A real-time analytics dashboard that demonstrates modern web monitoring/logging patterns using lightweight technologies. Instead of relying on heavy frameworks or complex infrastructure, the project showcases how server-sent events (SSE), Chart.js, and Django can create a responsive, production-grade monitoring solution. The system generates and streams mock API traffic to simulate real-world web activity, tracking common metrics like throughput monitoring, error rate tracking, and latency measurements.
+A real-time dashboard that demonstrates modern web monitoring and logging using lightweight tech. Instead of relying on heavy frameworks or complex infrastructure, the project showcases how server-sent events (SSE), Chart.js, and Django can create a responsive, production-grade monitoring solution. The system generates and streams mock API traffic to simulate real-world web activity, tracking common metrics (like throughput, API latency, error rates) and plotting them on real-time charts and tables.
 
 ## Core Features
 - Real-time traffic generation and streaming
