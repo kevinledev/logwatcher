@@ -95,13 +95,6 @@ def table_rows(request):
     events = paginator.get_page(page_number)
     return render(request, "dashboard/table/base.html", {"events": events})
 
-def generate_events():
-    """Background thread that generates events while is_generating is True"""
-    global is_generating
-    while is_generating:
-        generate_event_async()
-        time.sleep(5)
-
 def start_generation(request):
     """API endpoint to start event generation"""
     global is_generating
@@ -235,6 +228,8 @@ async def event_stream(request):
     try:
         async def event_stream_generator():
             logger.info("Starting event stream generator")
+            MEAN_INTERVAL = 0.8  # ~75 events per minute on average
+            
             while True:
                 try:
                     if not is_generating:
@@ -257,7 +252,8 @@ async def event_stream(request):
                     }
 
                     yield f"data: {json.dumps(event_data)}\nevent: api.request\n\n"
-                    await asyncio.sleep(5)
+                    # Exponential distribution with mean of 0.8 seconds
+                    await asyncio.sleep(random.expovariate(1.0/MEAN_INTERVAL))
                 except Exception as e:
                     logger.error(f"Error in generator: {str(e)}")
                     break
