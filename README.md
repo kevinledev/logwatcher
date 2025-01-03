@@ -1,14 +1,23 @@
 # logwatcher
 
-## Purpose
-A lightweight analytics dashboard that tracks and displays mock web application events (API calls, errors) in real-time using server-sent events (SSE). 
+## What is logwatcher?
+A real-time analytics dashboard that demonstrates modern web monitoring/logging patterns using lightweight technologies. Instead of relying on heavy frameworks or complex infrastructure, the project showcases how server-sent events (SSE), Chart.js, and Django can create a responsive, production-grade monitoring solution. The system generates and streams mock API events to simulate real-world web traffic, implementing common analytics patterns like throughput monitoring, error rate tracking, and latency measurements.
 
-This project demonstrates the evolution from a simple dashboard to a robust real-time monitoring system, with careful consideration given to performance, user experience, and maintainability.
+## Core Features
+- Real-time event generation and streaming
+  - Start/stop event generation on demand
+  - Mock API events with realistic patterns
+- Live dashboard with three key metrics:
+  - API Throughput
+  - Error Rates (4xx, 5xx)
+  - Response Latency
+- Configurable time ranges and granularity
+- Dark/light mode support
 
 ## Tech Stack
 ### Backend
-- Django (Python web framework)
-- PostgreSQL for event storage
+- Django
+- PostgreSQL
 - Django's built-in async capabilities for event streaming
 
 ### Frontend
@@ -17,21 +26,21 @@ This project demonstrates the evolution from a simple dashboard to a robust real
 - HTMX for dynamic updates
 - Halfmoon CSS for UI
 
-## Core Features
-- Real-time event generation and streaming
-- Live dashboard with three key metrics:
-  - API Throughput
-  - Error Rates (4xx, 5xx)
-  - Response Latency
-- Configurable time ranges and granularity
-- Dark/light mode support
+### Infrastructure
+- AWS EC2 for hosting
+- AWS RDS PostgreSQL database
+- NGINX web server (reverse proxy)
+  - Configured for SSE support
+- Uvicorn ASGI server
+  - Handles Django async views
+  - Supports SSE streaming
+  - Required for Django's async views
 
 ## Development Journey & Technical Decisions
 
 ### Data Source
 - Decided to mock API calls instead of using production API
   - Simpler implementation
-  - Controlled testing environment
   - Predictable error rates and patterns
 - Designed generic event model tracking:
   - HTTP methods
@@ -39,15 +48,15 @@ This project demonstrates the evolution from a simple dashboard to a robust real
   - Response times
   - Source endpoints
 
+### Evolution of Real-time Updates
+The real-time functionality went through several iterations to reach its current form. Initially, the dashboard used a simple polling mechanism with two separate 5-second timers - one for generating data points and another for updating the charts. While functional, this approach was inefficient and could lead to missed events. The solution evolved to use Server-Sent Events (SSE) for true real-time streaming, eliminating the polling overhead. The event generation was then integrated directly into the SSE stream using Django's async views and asyncio to streamline the data flow. As multiple components needed to listen to this event stream, I developed `streamHandler.js` to manage client-side subscriptions and event distribution. This final architecture provides efficient real-time updates while maintaining clean separation of concerns: the server handles event generation and streaming, while the StreamHandler manages client-side data distribution and chart updates.
+
 ### Real-time Updates Architecture
 - Chose Server-Sent Events over WebSockets
   - Simpler implementation for one-way data flow
-  - Less overhead than WebSockets (which are bidirectional)
-- Evolution of real-time updates:
-  1. Initial polling mechanism with dual timers (5s intervals)
-  2. Migrated to SSE for more efficient streaming
-  3. Integrated event generation within SSE stream
-  4. Created StreamHandler.js to manage client-side subscriptions
+  - Native browser support
+  - Less overhead than WebSockets
+- Used Python's asyncio with Django...
 
 ### Frontend Architecture
 - Chose Chart.js over React
@@ -72,7 +81,7 @@ This project demonstrates the evolution from a simple dashboard to a robust real
 
 ### Performance Optimization
 - Data Buffering Strategy
-  - Client-side buffering in StreamHandler
+
   - Server-side aggregation for historical data
   - Optimized update intervals
 - Update Frequency
@@ -86,8 +95,8 @@ This project demonstrates the evolution from a simple dashboard to a robust real
 - Deployment Issues
   - SSE compatibility with Uvicorn ASGI
   - NGINX configuration for event streams
-  - Migration from SQLite to PostgreSQL
-
+  - Migration from Django's default SQLite db to PostgreSQL
+  
 ### UI/UX Improvements
 - Theme Implementation
   - Dark/light mode toggle
