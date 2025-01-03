@@ -64,6 +64,11 @@
               <i class="bi bi-moon-stars-fill" data-theme-icon="dark"></i>
             </button>
 
+            <!-- Info Button -->
+            <button class="btn p-0" data-bs-toggle="modal" data-bs-target="#readmeModal">
+              <i class="bi bi-info-circle" style="font-size: 1.125rem; opacity: 0.75"></i>
+            </button>
+
           </div>
         </div>
       </nav>
@@ -180,26 +185,33 @@
       });
 
       function toggleTheme() {
-        const html = document.documentElement;
-        const newTheme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
-        html.setAttribute('data-bs-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        
-        // Get charts from Chart.js registry
-        const latencyChart = Chart.getChart('latencyChart');
-        const errorRateChart = Chart.getChart('errorRateChart');
-        
-        // Update latency chart colors
-        if (latencyChart) {
-          const colors = latencyChartColors.current();
-          updateChartColors(latencyChart, colors);
-        }
-        
-        // Update error rate chart colors
-        if (errorRateChart) {
-          const colors = errorChartColors.current();
-          updateChartColors(errorRateChart, colors);
-        }
+          const html = document.documentElement;
+          const newTheme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+          html.setAttribute('data-bs-theme', newTheme);
+          localStorage.setItem('theme', newTheme);
+          
+          // Get charts from Chart.js registry
+          const latencyChart = Chart.getChart('latencyChart');
+          const errorRateChart = Chart.getChart('errorRateChart');
+          const throughputChart = Chart.getChart('throughputChart');
+          
+          // Update latency chart colors
+          if (latencyChart) {
+              const colors = latencyChartColors.current();
+              updateChartColors(latencyChart, colors);
+          }
+          
+          // Update error rate chart colors
+          if (errorRateChart) {
+              const colors = errorChartColors.current();
+              updateChartColors(errorRateChart, colors);
+          }
+
+          // Update throughput chart colors
+          if (throughputChart) {
+              const colors = throughputChartColors.current();
+              updateChartColors(throughputChart, colors);
+          }
       }
 
       function updateChartColors(chart, colors) {
@@ -217,6 +229,21 @@
         chart.update("quiet");
       }
     </script>
+
+    <!-- README Modal -->
+    <div class="modal fade" id="readmeModal" tabindex="-1" aria-labelledby="readmeModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="readmeModalLabel">About logwatcher</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body markdown-body">
+            {{ readme_content|safe }}
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
 
@@ -299,5 +326,38 @@
 
   #liveIndicator .card:hover {
     cursor: unset;
+  }
+
+
+    .modal-dialog {
+    max-width: 800px;
+  }
+  
+  .markdown-body {
+    font-family: -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  .markdown-body h1 { font-size: 2em; margin-bottom: 16px; }
+  .markdown-body h2 { font-size: 1.5em; margin: 24px 0 16px; }
+  .markdown-body h3 { font-size: 1.25em; margin: 20px 0 12px; }
+  
+  .markdown-body code {
+    padding: 0.2em 0.4em;
+    background-color: var(--bs-tertiary-bg);
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, monospace;
+    font-size: 85%;
+  }
+
+  .markdown-body pre {
+    padding: 16px;
+    overflow: auto;
+    background-color: var(--bs-tertiary-bg);
+    border-radius: 6px;
   }
 </style>

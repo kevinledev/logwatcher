@@ -18,6 +18,7 @@ from django.core.paginator import Paginator
 from asgiref.sync import sync_to_async
 from django.db import models
 import logging
+import markdown2
 
 # Global flag to control event generation
 is_generating = False
@@ -85,9 +86,16 @@ async def generate_event_async():
 def dashboard(request):
     """Main view that renders the monitoring dashboard"""
     global is_generating
-    return render(request, "dashboard/index.html", {
-        "is_generating": is_generating,
-    })
+
+    # Read and convert README.md to HTML
+    with open("README.md", "r") as f:
+        readme_content = markdown2.markdown(f.read())
+
+    return render(
+        request,
+        "dashboard/index.html",
+        {"is_generating": is_generating, "readme_content": readme_content},
+    )
 
 def table_rows(request):
     """HTMX endpoint for paginated table rows"""

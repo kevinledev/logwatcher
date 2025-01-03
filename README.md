@@ -1,6 +1,5 @@
 # logwatcher
 
-## What is logwatcher?
 A real-time analytics dashboard that demonstrates modern web monitoring/logging patterns using lightweight technologies. Instead of relying on heavy frameworks or complex infrastructure, the project showcases how server-sent events (SSE), Chart.js, and Django can create a responsive, production-grade monitoring solution. The system generates and streams mock API events to simulate real-world web traffic, implementing common analytics patterns like throughput monitoring, error rate tracking, and latency measurements.
 
 ## Core Features
@@ -96,7 +95,7 @@ The real-time functionality went through several iterations to reach its current
   - SSE compatibility with Uvicorn ASGI
   - NGINX configuration for event streams
   - Migration from Django's default SQLite db to PostgreSQL
-  
+
 ### UI/UX Improvements
 - Theme Implementation
   - Dark/light mode toggle
@@ -112,11 +111,3 @@ The real-time functionality went through several iterations to reach its current
   - Matched historical and real-time aggregation
   - Fixed time window calculations
   - Improved error rate accuracy
-
-## API Endpoints
-```
-GET /api/historical-throughput-data/
-GET /api/historical-error-data/
-GET /api/historical-latency-data/
-GET /event-stream/ # SSE endpoint
-```
