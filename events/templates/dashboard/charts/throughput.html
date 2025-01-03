@@ -157,35 +157,34 @@
         
         const now = data.time.getTime();
         
-        // Calculate the current bucket's start time
-        const currentBucket = Math.floor(now / (intervalSeconds * 1000)) * intervalSeconds * 1000;
-        
-        // Add new request to window with its bucket
+        // Add new request to window
         throughputRequestWindow.push({
-            timestamp: now,
-            bucket: currentBucket
+            timestamp: now
         });
 
-        // Keep only requests within the chart duration
-        const windowStart = now - throughputChart.options.scales.x.realtime.duration;
-        throughputRequestWindow = throughputRequestWindow.filter(req => 
-            req.timestamp >= windowStart
-        );
+        // Remove requests outside the window
+        const windowDuration = throughputChart.options.scales.x.realtime.duration;
+        throughputRequestWindow = throughputRequestWindow.filter(req => now - req.timestamp <= windowDuration);
 
         const lastDataPoint = throughputChart.data.datasets[0].data[throughputChart.data.datasets[0].data.length - 1];
         
         if (!lastDataPoint || (now - lastDataPoint.x) >= intervalSeconds * 1000) {
-            // Count requests in the current bucket only
-            const requestsInBucket = throughputRequestWindow.filter(req => 
-                req.bucket === currentBucket
+            // Calculate the current interval's start time
+            const intervalStart = Math.floor(now / (intervalSeconds * 1000)) * (intervalSeconds * 1000);
+            
+            // Count only requests in this specific interval
+            const requestsInInterval = throughputRequestWindow.filter(req => 
+                req.timestamp >= intervalStart && 
+                req.timestamp < intervalStart + (intervalSeconds * 1000)
             ).length;
             
-            const requestsPerMinute = (requestsInBucket * 60) / intervalSeconds;
+            const requestsPerMinute = (requestsInInterval * 60) / intervalSeconds;
             
             throughputChart.data.datasets[0].data.push({
-                x: currentBucket,  // Use bucket time instead of now
+                x: now,
                 y: requestsPerMinute
             });
+
             throughputChart.update();
         }
     });
