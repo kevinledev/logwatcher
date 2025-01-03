@@ -20,7 +20,7 @@
         dark: {
             text: '#D1D7E0',
             gridLines: 'rgba(209, 215, 224, 0.1)',
-            axisLabels: 'hsl(216, 20%, 25%)',
+            axisLabels: 'hsl(216, 20%, 40%)',
             latency: {
                 line: '#3b82f6',
                 fill: 'rgba(59, 130, 246, 0.08)'
@@ -150,7 +150,7 @@
             .then((response) => response.json())
             .then((data) => {
                 latencyChart.data.datasets[0].data = data.data;
-                latencyChart.update();
+                latencyChart.update('quiet');
             })
             .catch((error) => {
                 console.error("Error loading historical data:", error);
@@ -182,13 +182,13 @@
                 x: data.time,
                 y: data.duration
             });
-            latencyChart.update();
+            latencyChart.update('quiet');
         }
     });
 
     document.addEventListener('generationStateChanged', function(e) {
         if (!e.detail.isGenerating) {
-            latencyChart.update();
+            latencyChart.update('quiet');
         }
     });
 </script>

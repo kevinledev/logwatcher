@@ -1,0 +1,227 @@
+<div style="position: relative; height: 400px">
+    <canvas id="throughputChart"></canvas>
+</div>
+
+{% with timerange_id="throughputTimeRange" timerange_name="throughput-timeframe-group" %}
+    {% include "dashboard/charts/controls.html" %}
+{% endwith %}
+
+<script>
+    const throughputChartColors = {
+        light: {
+            text: '#1F252E',
+            gridLines: 'rgba(107, 114, 128, 0.1)',
+            axisLabels: '#52627A',
+            throughput: {
+                line: '#10b981',
+                fill: 'rgba(16, 185, 129, 0.08)'
+            }
+        },
+        dark: {
+            text: '#D1D7E0',
+            gridLines: 'rgba(209, 215, 224, 0.1)',
+            axisLabels: 'hsl(216, 20%, 40%)',
+            throughput: {
+                line: '#10b981',
+                fill: 'rgba(16, 185, 129, 0.08)'
+            }
+        },
+        current() {
+            return document.documentElement.getAttribute('data-bs-theme') === 'dark' 
+                ? this.dark 
+                : this.light;
+        }
+    };
+
+    const throughputCtx = document.getElementById("throughputChart").getContext("2d");
+    const throughputChart = new Chart(throughputCtx, {
+        type: "line",
+        data: {
+            datasets: [{
+                label: "Requests per Minute",
+                data: [],
+                borderColor: throughputChartColors.current().throughput.line,
+                backgroundColor: throughputChartColors.current().throughput.fill,
+                fill: true,
+                tension: 0.2,
+                borderWidth: 1.5,
+                pointRadius: 2,
+                pointHoverRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'API Throughput Over Time',
+                    color: throughputChartColors.current().text,
+                    font: {
+                        size: 16,
+                        family: 'Inter, system-ui, -apple-system, sans-serif',
+                        weight: '500'
+                    },
+                    padding: 20
+                },
+                legend: {
+                    labels: {
+                        color: throughputChartColors.current().text,
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            family: 'Inter, system-ui, -apple-system, sans-serif',
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(31, 37, 46, 0.95)',
+                    padding: 10,
+                    titleFont: {
+                        family: 'Inter, system-ui, -apple-system, sans-serif'
+                    },
+                    bodyFont: {
+                        family: 'Inter, system-ui, -apple-system, sans-serif'
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y.toFixed(1)} req/min`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: "realtime",
+                    realtime: {
+                        duration: 300000,
+                        delay: 0,
+                        refresh: 1000,
+                        onRefresh: () => {}
+                    },
+                    grid: {
+                        color: throughputChartColors.current().gridLines,
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: throughputChartColors.current().axisLabels,
+                        font: {
+                            family: 'Inter, system-ui, -apple-system, sans-serif',
+                            size: 11
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Requests per Minute',
+                        color: throughputChartColors.current().text
+                    },
+                    grid: {
+                        color: throughputChartColors.current().gridLines,
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: throughputChartColors.current().axisLabels,
+                        font: {
+                            family: 'Inter, system-ui, -apple-system, sans-serif',
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    function getIntervalForTimeframe(timeframeMinutes) {
+        // Aim for ~60 data points
+        const intervalSeconds = Math.floor((timeframeMinutes * 60) / 60);
+        return Math.max(5, intervalSeconds); // Minimum 5 second intervals
+    }
+    
+    // Keep track of requests in the current window
+    let throughputRequestWindow = [];
+    let lastBucketTime = null;
+    
+    // Subscribe to stream updates
+    streamHandler.subscribe((data) => {
+        const selectedRadio = document.querySelector('input[name="throughput-timeframe-group"]:checked');
+        const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
+        const intervalSeconds = getIntervalForTimeframe(rangeMinutes);
+        
+        const now = data.time.getTime();
+        
+        // Add new request to window
+        throughputRequestWindow.push({
+            timestamp: now
+        });
+
+        // Remove requests outside the window
+        const windowDuration = throughputChart.options.scales.x.realtime.duration;
+        throughputRequestWindow = throughputRequestWindow.filter(req => now - req.timestamp <= windowDuration);
+
+        // Calculate current bucket time
+        const currentBucketTime = Math.floor(now / (intervalSeconds * 1000)) * (intervalSeconds * 1000);
+
+        // Only update when we move to a new time bucket
+        if (currentBucketTime !== lastBucketTime) {
+            // Count requests in the current interval
+            const bucketRequests = throughputRequestWindow.filter(req => 
+                req.timestamp >= currentBucketTime - (intervalSeconds * 1000) &&
+                req.timestamp < currentBucketTime
+            ).length;
+
+            // Calculate requests per minute
+            const requestsPerMinute = (bucketRequests / intervalSeconds) * 60;
+            
+            throughputChart.data.datasets[0].data.push({
+                x: currentBucketTime,
+                y: requestsPerMinute
+            });
+
+            lastBucketTime = currentBucketTime;
+            throughputChart.update('quiet');
+        }
+    });
+    // Load historical data
+    async function loadHistoricalThroughputData() {
+        const selectedRadio = document.querySelector('input[name="throughput-timeframe-group"]:checked');
+        const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
+        const intervalSeconds = getIntervalForTimeframe(rangeMinutes);
+
+        try {
+            const response = await fetch(
+                `/api/historical-throughput-data/?interval=${intervalSeconds}&range=${rangeMinutes}`
+            );
+            const data = await response.json();
+            
+            throughputChart.data.datasets[0].data = data.data;
+            throughputChart.update('quiet');
+        } catch (error) {
+            console.error("Error loading historical throughput data:", error);
+        }
+    }
+
+    // Initialize with historical data
+    loadHistoricalThroughputData();
+
+    // Event listeners for timeframe controls
+    document.querySelectorAll('input[name="throughput-timeframe-group"]').forEach((radioBtn) => {
+        radioBtn.addEventListener("change", (e) => {
+            throughputChart.options.scales.x.realtime.duration = parseInt(e.target.value) * 60 * 1000;
+            loadHistoricalThroughputData();
+        });
+    });
+
+    document.addEventListener('generationStateChanged', function(e) {
+        if (!e.detail.isGenerating) {
+            throughputChart.update('quiet');
+        }
+    });
+</script> 

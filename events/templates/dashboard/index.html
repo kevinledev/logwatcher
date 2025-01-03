@@ -85,6 +85,12 @@
                 </div>
               </div>
             </div>
+          <div class="col-12 col-xl-6">
+            <div class="card h-full">
+                <div class="p-3">
+                    {% include "dashboard/charts/throughput.html" %}
+                </div>
+            </div>
           </div>
 
           <!-- Event Table -->
@@ -162,6 +168,10 @@
           updateChartColors(errorRateChart, errorChartColors.current());
         }
 
+        if (throughputChart) {
+          updateChartColors(throughputChart, throughputChartColors.current());
+        }
+
         // Initialize all tooltips
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.map(function(tooltipTriggerEl) {
@@ -204,7 +214,7 @@
         chart.options.scales.y.ticks.color = colors.axisLabels;
         chart.options.scales.y.title.color = colors.text;
 
-        chart.update(); // Update without animation
+        chart.update("quiet");
       }
     </script>
   </body>

@@ -1,10 +1,11 @@
 import asyncio
+from itertools import count
 from django.shortcuts import render
 from django.http import JsonResponse, StreamingHttpResponse
 from .models import Event
 import random
 import time
-from django.db.models import Avg, Min
+from django.db.models import Avg, Min, Count
 import json
 from django.utils import timezone
 from datetime import timedelta
@@ -217,19 +218,19 @@ def get_historical_error_data(request):
 async def event_stream(request):
     logger.info("SSE connection attempted")
     global is_generating
-    
+
     if not is_generating:
         logger.info("Stream requested but generation is stopped")
         return StreamingHttpResponse(
             content_type='text/event-stream',
             streaming_content=iter([f"data: {json.dumps({'error': 'Generation stopped'})}\n\n"])
         )
-    
+
     try:
         async def event_stream_generator():
             logger.info("Starting event stream generator")
             MEAN_INTERVAL = 0.8  # ~75 events per minute on average
-            
+
             while True:
                 try:
                     if not is_generating:
@@ -271,3 +272,58 @@ async def event_stream(request):
             content_type='text/event-stream',
             streaming_content=iter([f"data: {json.dumps({'error': str(e)})}\n\n"])
         )
+
+
+def get_historical_throughput_data(request):
+    interval_seconds = int(request.GET.get("interval", "60"))
+    range_minutes = int(request.GET.get("range", "15"))
+
+    now = timezone.now()
+    start_time = now - timedelta(minutes=range_minutes)
+
+    events = Event.objects.filter(timestamp__gte=start_time).order_by("timestamp")
+
+    if interval_seconds < 60:  # Sub-minute intervals
+        aggregated_data = (
+            events.annotate(
+                bucket=ExpressionWrapper(
+                    (
+                        ExtractHour("timestamp") * 3600
+                        + ExtractMinute("timestamp") * 60
+                        + ExtractSecond("timestamp")
+                    )
+                    / interval_seconds,
+                    output_field=IntegerField(),
+                )
+            )
+            .values("bucket")
+            .annotate(count=Count("id"), timestamp=Min("timestamp"))
+            .order_by("bucket")
+        )
+    else:  # Minute-based intervals
+        minutes_fraction = interval_seconds // 60
+        aggregated_data = (
+            events.annotate(
+                bucket=ExpressionWrapper(
+                    (ExtractHour("timestamp") * 60 + ExtractMinute("timestamp"))
+                    / minutes_fraction,
+                    output_field=IntegerField(),
+                )
+            )
+            .values("bucket")
+            .annotate(count=Count("id"), timestamp=Min("timestamp"))
+            .order_by("bucket")
+        )
+
+    return JsonResponse(
+        {
+            "data": [
+                {
+                    "x": entry["timestamp"].timestamp() * 1000,
+                    "y": (entry["count"] * 60)
+                    / interval_seconds,  # Convert to requests per minute
+                }
+                for entry in aggregated_data
+            ]
+        }
+    )

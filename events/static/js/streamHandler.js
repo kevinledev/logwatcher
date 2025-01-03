@@ -36,12 +36,25 @@ class StreamHandler {
         try {
           const rawData = JSON.parse(e.data);
           const formattedData = this.formatEventData(rawData);
-
-          this.subscribers.forEach((subscriber) => {
-            if (typeof subscriber.callback === "function") {
-              subscriber.callback(formattedData);
-            }
-          });
+          
+          const now = formattedData.time.getTime();
+          
+          // Synchronized update check
+          if (!this.lastUpdateTime || (now - this.lastUpdateTime) >= this.updateInterval) {
+            this.subscribers.forEach((subscriber) => {
+              if (typeof subscriber.callback === "function") {
+                subscriber.callback(formattedData, true); // true indicates it's an update boundary
+              }
+            });
+            this.lastUpdateTime = now;
+          } else {
+            // Just collect data without updating charts
+            this.subscribers.forEach((subscriber) => {
+              if (typeof subscriber.callback === "function") {
+                subscriber.callback(formattedData, false); // false indicates no update needed
+              }
+            });
+          }
         } catch (error) {
           console.error(
             "[StreamHandler] Error processing stream data:",
