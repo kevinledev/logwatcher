@@ -1,17 +1,16 @@
 # logwatcher
 
-A real-time analytics dashboard that demonstrates modern web monitoring/logging patterns using lightweight technologies. Instead of relying on heavy frameworks or complex infrastructure, the project showcases how server-sent events (SSE), Chart.js, and Django can create a responsive, production-grade monitoring solution. The system generates and streams mock API events to simulate real-world web traffic, implementing common analytics patterns like throughput monitoring, error rate tracking, and latency measurements.
+A real-time analytics dashboard that demonstrates modern web monitoring/logging patterns using lightweight technologies. Instead of relying on heavy frameworks or complex infrastructure, the project showcases how server-sent events (SSE), Chart.js, and Django can create a responsive, production-grade monitoring solution. The system generates and streams mock API traffic to simulate real-world web activity, tracking common metrics like throughput monitoring, error rate tracking, and latency measurements.
 
 ## Core Features
-- Real-time event generation and streaming
-  - Start/stop event generation on demand
-  - Mock API events with realistic patterns
+- Real-time traffic generation and streaming
+  - Start/stop stream on demand
+  - Mock API traffic with realistic patterns
+  - Synchronized controls across browser tabs
 - Live dashboard with three key metrics:
   - API Throughput
   - Error Rates (4xx, 5xx)
   - Response Latency
-- Configurable time ranges and granularity
-- Dark/light mode support
 
 ## Tech Stack
 ### Backend
@@ -55,7 +54,8 @@ The real-time functionality went through several iterations to reach its current
   - Simpler implementation for one-way data flow
   - Native browser support
   - Less overhead than WebSockets
-- Used Python's asyncio with Django...
+- Used Python's asyncio with Django
+- Live stream controls sync automatically across all open browser tabs
 
 ### Frontend Architecture
 - Chose Chart.js over React
@@ -80,7 +80,6 @@ The real-time functionality went through several iterations to reach its current
 
 ### Performance Optimization
 - Data Buffering Strategy
-
   - Server-side aggregation for historical data
   - Optimized update intervals
 - Update Frequency

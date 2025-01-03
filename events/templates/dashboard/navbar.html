@@ -39,6 +39,34 @@
   </div>
 </nav>
 
+<script>
+  async function toggleGeneration() {
+    const endpoint = isGenerating ? '/stream/stop/' : '/stream/start/';
+
+    try {
+      console.log(`[Toggle] Current state: ${isGenerating}, calling ${endpoint}`);
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      console.log('[Toggle] Server response:', data);
+      
+      isGenerating = !isGenerating;
+      
+      // Broadcast state change to other windows
+      const broadcastChannel = new BroadcastChannel('stream_state');
+      broadcastChannel.postMessage({
+        type: 'stream_state_change',
+        isGenerating: isGenerating
+      });
+      
+      // Local UI update
+      streamHandler.updateNavbarIndicator();
+      
+    } catch (error) {
+      console.error('[Toggle] Error:', error);
+    }
+  }
+</script>
+
 <style>
     .navbar{
     background-color: hsla(var(--bs-body-bg-hsl), 0.75);
@@ -79,3 +107,4 @@
     padding: 0.25rem 0.5rem;
   }
 </style>
+
