@@ -17,4 +17,6 @@ urlpatterns = [
     path('api/event-rows/', views.table_rows, name='table_rows'),
     path('api/historical-error-data/', views.get_historical_error_data, name='historical_error_data'),
     path('api/historical-throughput-data/', views.get_historical_throughput_data, name='historical_throughput_data'),
+    path('api/method-distribution/', views.get_method_distribution, name='method_distribution'),
+    path('api/historical-method-data/', views.get_historical_method_data, name='historical_method_data'),
 ] 

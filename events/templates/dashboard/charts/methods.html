@@ -1,0 +1,167 @@
+<div style="position: relative; height: 400px">
+    <canvas id="methodChart"></canvas>
+</div>
+
+{% with timerange_id="methodTimeRange" timerange_name="method-timeframe-group" %}
+    {% include "dashboard/charts/controls.html" %}
+{% endwith %}
+
+<script>
+    const methodChartColors = {
+        light: {
+            text: '#1F252E',
+            methods: {
+                get: '#3b82f6',     // blue
+                post: '#10b981',    // green
+                put: '#f59e0b',     // amber
+                delete: '#dc2626',  // red
+            }
+        },
+        dark: {
+            text: '#D1D7E0',
+            methods: {
+                get: '#3b82f6',     // blue
+                post: '#10b981',    // green
+                put: '#f59e0b',     // amber
+                delete: '#dc2626',  // red
+            }
+        },
+        current() {
+            return document.documentElement.getAttribute('data-bs-theme') === 'dark' 
+                ? this.dark 
+                : this.light;
+        }
+    };
+
+    const methodChart = new Chart(
+        document.getElementById("methodChart"), {
+        type: 'doughnut',
+        data: {
+            labels: ['GET', 'POST', 'PUT', 'DELETE'],
+            datasets: [{
+                data: [0, 0, 0, 0, 0],
+                backgroundColor: [
+                    methodChartColors.current().methods.get,
+                    methodChartColors.current().methods.post,
+                    methodChartColors.current().methods.put,
+                    methodChartColors.current().methods.delete,
+                ],
+                borderWidth: 0,
+                cutout: '60%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'HTTP Methods Distribution',
+                    color: methodChartColors.current().text,
+                    font: {
+                        size: 16,
+                        family: 'Inter, system-ui, -apple-system, sans-serif',
+                        weight: '500'
+                    },
+                    padding: 20
+                },
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: methodChartColors.current().text,
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            family: 'Inter, system-ui, -apple-system, sans-serif',
+                            size: 12
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Keep track of requests in the current window
+    let methodRequestWindow = [];
+    
+    // Initialize window with historical data
+    async function initializeMethodWindow() {
+        const selectedRadio = document.querySelector('input[name="method-timeframe-group"]:checked');
+        const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
+        const now = Date.now();
+        
+        try {
+            const response = await fetch(
+                `/api/historical-method-data/?interval=${getIntervalForTimeframe(rangeMinutes)}&range=${rangeMinutes}`
+            );
+            const data = await response.json();
+            
+            // Convert historical data to window format
+            const methods = ['GET', 'POST', 'PUT', 'DELETE'];
+            methods.forEach((method, index) => {
+                for (let i = 0; i < data.data[index]; i++) {
+                    methodRequestWindow.push({
+                        timestamp: now - (Math.random() * rangeMinutes * 60 * 1000),
+                        method: method
+                    });
+                }
+            });
+            
+            updateMethodChart();
+        } catch (error) {
+            console.error("Error initializing method window:", error);
+        }
+    }
+    
+    function updateMethodChart() {
+        const methodCounts = {
+            'GET': 0, 'POST': 0, 'PUT': 0, 'DELETE': 0,
+        };
+
+        methodRequestWindow.forEach(req => {
+          methodCounts[req.method]++;
+        });
+
+        methodChart.data.datasets[0].data = [
+            methodCounts['GET'],
+            methodCounts['POST'],
+            methodCounts['PUT'],
+            methodCounts['DELETE'],
+        ];
+        
+        methodChart.update();
+    }
+    
+    // Subscribe to stream updates
+    streamHandler.subscribe((data) => {
+        const selectedRadio = document.querySelector('input[name="method-timeframe-group"]:checked');
+        const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
+        const windowDuration = rangeMinutes * 60 * 1000;
+        
+        const now = data.time.getTime();
+        
+        // Add new request to window
+        methodRequestWindow.push({
+            timestamp: now,
+            method: data.method
+        });
+
+        // Remove requests outside the window
+        methodRequestWindow = methodRequestWindow.filter(req => 
+            now - req.timestamp <= windowDuration
+        );
+
+        updateMethodChart();
+    });
+
+    // Initialize with historical data
+    initializeMethodWindow();
+
+    // Event listeners for timeframe controls
+    document.querySelectorAll('input[name="method-timeframe-group"]').forEach((radioBtn) => {
+        radioBtn.addEventListener("change", (e) => {
+            methodRequestWindow = []; // Clear window on timeframe change
+            initializeMethodWindow();
+        });
+    });
+</script> 

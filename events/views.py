@@ -335,3 +335,41 @@ def get_historical_throughput_data(request):
             ]
         }
     )
+
+def get_method_distribution(request):
+    range_minutes = int(request.GET.get('range', '15'))
+    start_time = timezone.now() - timedelta(minutes=range_minutes)
+    
+    method_counts = (Event.objects.filter(timestamp__gte=start_time)
+                    .values('method')
+                    .annotate(count=Count('method'))
+                    .order_by('-count'))
+    
+    return JsonResponse({
+        'labels': [item['method'] for item in method_counts],
+        'data': [item['count'] for item in method_counts],
+    })
+
+def get_historical_method_data(request):
+    range_minutes = int(request.GET.get('range', '15'))
+    start_time = timezone.now() - timedelta(minutes=range_minutes)
+    
+    events = Event.objects.filter(timestamp__gte=start_time)
+    
+    method_counts = {
+        'GET': events.filter(method='GET').count(),
+        'POST': events.filter(method='POST').count(),
+        'PUT': events.filter(method='PUT').count(),
+        'DELETE': events.filter(method='DELETE').count(),
+        'OTHER': events.exclude(method__in=['GET', 'POST', 'PUT', 'DELETE']).count()
+    }
+    
+    data = [
+        method_counts['GET'],
+        method_counts['POST'],
+        method_counts['PUT'],
+        method_counts['DELETE'],
+        method_counts['OTHER']
+    ]
+    
+    return JsonResponse({'data': data})
