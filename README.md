@@ -2,6 +2,15 @@
 
 A real-time dashboard that demonstrates modern web monitoring and logging using lightweight tech. Instead of relying on heavy frameworks or complex infrastructure, the project showcases how server-sent events (SSE), Chart.js, and Django can create a responsive, production-grade monitoring solution. The system generates and streams mock API traffic to simulate real-world web activity, tracking common metrics (like throughput, API latency, error rates) and plotting them on real-time charts and tables.
 
+## System Architecture
+The following diagram illustrates the system's key components and data flow
+<div align="center">
+<a href="https://i.imgur.com/oFwT6Eh.png" target="_blank">
+  <img src="https://i.imgur.com/oFwT6Eh.png" alt="System Architecture Diagram" width="800"/>
+</a>
+<a href="https://i.imgur.com/oFwT6Eh.png" target="_blank">Click to view full size</a>
+</div>
+
 ## Core Features
 - Real-time traffic generation and streaming
   - Start/stop stream on demand
