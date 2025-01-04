@@ -14,10 +14,10 @@ Click "Start Stream" in the navigation bar to begin generating sample API traffi
 ## System Architecture
 The following diagram illustrates the system's key components and data flow
 <div align="center">
-<a href="https://i.imgur.com/oFwT6Eh.png" target="_blank">
-  <img src="https://i.imgur.com/oFwT6Eh.png" alt="System Architecture Diagram" width="800"/>
+<a href="https://i.imgur.com/huNNdk3.png" target="_blank">
+  <img src="https://i.imgur.com/huNNdk3.png" alt="System Architecture Diagram" width="800"/>
 </a>
-<a href="https://i.imgur.com/oFwT6Eh.png" target="_blank">Click to view full size</a>
+<a href="https://i.imgur.com/huNNdk3.png" target="_blank">Click to view full size</a>
 </div>
 
 ## Core Features
@@ -51,38 +51,14 @@ The following diagram illustrates the system's key components and data flow
   - Supports SSE streaming
   - Required for Django's async views
 
-## Development Journey & Technical Decisions
+## Development Journey: From Polling to Real-time Streaming
+The real-time functionality went through several iterations to reach its current form. Initially, the dashboard used a simple polling mechanism with two separate 5-second timers - one for generating data points and another for updating the charts. While functional, this approach was inefficient and could lead to missed events. The solution evolved to use Server-Sent Events (SSE) for true real-time streaming, eliminating the polling overhead. The event generation was then integrated directly into the SSE stream using Django's async views and asyncio to streamline the data flow. As multiple components needed to listen to this event stream, I developed `streamHandler.js` to manage client-side subscriptions and event distribution. This final architecture allows efficient real-time updates while maintaining clean separation of concerns: the server handles event generation and streaming, while the StreamHandler manages client-side data distribution and chart updates.
 
-### Data Source
-- Decided to mock API calls instead of using production API
-  - Simpler implementation
-  - Predictable error rates and patterns
-- Designed generic event model tracking:
-  - HTTP methods
-  - Status codes
-  - Response times
-  - Source endpoints
-
-### Evolution of Real-time Updates
-The real-time functionality went through several iterations to reach its current form. Initially, the dashboard used a simple polling mechanism with two separate 5-second timers - one for generating data points and another for updating the charts. While functional, this approach was inefficient and could lead to missed events. The solution evolved to use Server-Sent Events (SSE) for true real-time streaming, eliminating the polling overhead. The event generation was then integrated directly into the SSE stream using Django's async views and asyncio to streamline the data flow. As multiple components needed to listen to this event stream, I developed `streamHandler.js` to manage client-side subscriptions and event distribution. This final architecture provides efficient real-time updates while maintaining clean separation of concerns: the server handles event generation and streaming, while the StreamHandler manages client-side data distribution and chart updates.
-
-### Real-time Updates Architecture
-- Chose Server-Sent Events over WebSockets
-  - Simpler implementation for one-way data flow
-  - Native browser support
-  - Less overhead than WebSockets
-- Used Python's asyncio with Django
-- Live stream controls sync automatically across all open browser tabs
+### Real-time Implementation: SSE and Cross-Tab Synchronization
+For real-time data streaming, Server-Sent Events (SSE) was chosen over WebSockets due to its unidirectional nature. The server exposes an SSE endpoint `/stream` that continuously generates simulated API traffic data. On the frontend, charts and tables subscribe to this event stream which allows for real-time updates. Since data only flows from server to client, SSE provides a simpler and more efficient approach compared to WebSocket's bidirectional overhead. The implementation uses Python's asyncio with Django for the streaming backend, while BroadcastChannel API ensures the charts and data stream controls stay synchronized across all open browser tabs and windows.
 
 ### Frontend Architecture
-- Chose Chart.js over React
-  - Lighter weight
-  - Built-in real-time plugins
-  - Simpler integration with Django templates
-- HTMX for dynamic updates
-  - Table row rendering
-  - Pagination handling
-  - Minimal JavaScript
+The frontend prioritizes simplicity and performance by avoiding heavy frameworks. Instead of using solutions like Grafana or React, I built the dashboard using Chart.js and vanilla JavaScript. The charts and tables subscribe to a server-sent event stream `/stream` through a centralized StreamHandler `streamHandler.js`, which manages real-time data distribution and updates. HTMX handles dynamic content updates like table pagination with minimal JavaScript.
 
 ### Data Visualization Challenges
 - Time Series Implementation
@@ -101,23 +77,5 @@ The real-time functionality went through several iterations to reach its current
   - Optimized update intervals
 - Update Frequency
   - Handled mismatch between server events (~0.8s) and display intervals
-  - Implemented smart filtering for chart updates
 
-### Integration Challenges
-- Async/Sync Integration
-  - Combined Django async views with sync database operations
-  - Handled race conditions in real-time updates
-- Deployment Issues
-  - SSE compatibility with Uvicorn ASGI
-  - NGINX configuration for event streams
-  - Migration from Django's default SQLite db to PostgreSQL
 
-### Debugging Journey
-- Chart Rendering
-  - Fixed tooltip compatibility issues
-  - Resolved granularity control bugs
-  - Synchronized multi-chart updates
-- Data Consistency
-  - Matched historical and real-time aggregation
-  - Fixed time window calculations
-  - Improved error rate accuracy
