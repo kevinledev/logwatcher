@@ -117,12 +117,8 @@ class StreamHandler {
         this.eventSource.close();
         this.eventSource = null;
         console.log("[StreamHandler] EventSource closed");
-
-        const response = await fetch("/stream/stop/");
-        const data = await response.json();
-        console.log("[StreamHandler] Stop request response:", data);
       } catch (error) {
-        console.error("[StreamHandler] Error stopping stream:", error);
+        console.error("[StreamHandler] Error closing EventSource:", error);
       }
     }
   }
