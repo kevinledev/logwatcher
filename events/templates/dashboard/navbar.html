@@ -3,7 +3,7 @@
     <a href="{% url 'dashboard' %}" class="navbar-brand logo">
       📡 logwatcher
     </a>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-2 vertical-center">
       <!-- Live Indicator -->
       <div id="liveIndicator">
         <span class="card d-flex align-items-center flex-row px-2 py-1"
@@ -22,7 +22,7 @@
       <!-- Stream Control Button -->
       <button
         id="generateBtn"
-        class="btn {% if is_generating %}btn-danger{% else %}btn-primary{% endif %}"
+        class="btn {% if is_generating %}btn-danger{% else %}btn-primary{% endif %} btn-lg"
         onclick="toggleGeneration()"
       >
         {% if is_generating %}Stop Stream{% else %}Start Stream{% endif %}
@@ -77,13 +77,13 @@
   .logo {
     font-family: 'Roboto', sans-serif;
     font-weight: 500;
-    font-size: 1.125rem;
+    font-size: 1.25rem;
     letter-spacing: 0.05em;
     color: var(--bs-body-color);
     display: flex;
     align-items: center;
     position: relative;
-    padding-bottom: 2px;
+    padding-bottom: 3px;
     margin-bottom: 2px;
   }
 
@@ -91,7 +91,7 @@
   .logo::after {
     content: "";
     position: absolute;
-    bottom: 0px;
+    bottom: 2px;
     left: 0;
     width: 100%;
     height: 2px;
@@ -103,8 +103,22 @@
     display: none;
   }
 
-  #liveIndicator .card{
-    padding: 0.25rem 0.5rem;
+  #liveIndicator .card {
+    padding: var(--bs-action-lg-padding-y) var(--bs-action-lg-padding-x) !important;
+    font-size: 1rem !important;
+  }
+
+  /* Info and theme toggle icons */
+  #themeToggle i,
+  .bi-info-circle {
+    font-size: 1.25rem !important;
+    opacity: 0.8;
+  }
+
+  /* Hover states */
+  #themeToggle:hover i,
+  .bi-info-circle:hover {
+    opacity: 1;
   }
 </style>
 

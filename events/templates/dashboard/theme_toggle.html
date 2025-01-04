@@ -13,7 +13,7 @@
     const latencyChart = Chart.getChart('latencyChart');
     const errorRateChart = Chart.getChart('errorRateChart');
     const throughputChart = Chart.getChart('throughputChart');
-    
+    const methodChart = Chart.getChart('methodChart');
     if (latencyChart) {
       updateChartColors(latencyChart, latencyChartColors.current());
     }
@@ -22,6 +22,9 @@
     }
     if (throughputChart) {
       updateChartColors(throughputChart, throughputChartColors.current());
+    }
+    if (methodChart) {
+      updateChartColors(methodChart, methodChartColors.current());
     }
   });
 
@@ -35,6 +38,7 @@
     const latencyChart = Chart.getChart('latencyChart');
     const errorRateChart = Chart.getChart('errorRateChart');
     const throughputChart = Chart.getChart('throughputChart');
+    const methodChart = Chart.getChart('methodChart');
     
     // Update charts colors
     if (latencyChart) {
@@ -46,21 +50,16 @@
     if (throughputChart) {
       updateChartColors(throughputChart, throughputChartColors.current());
     }
+    if (methodChart) {
+      updateChartColors(methodChart, methodChartColors.current());
+    }
   }
 
   function updateChartColors(chart, colors) {
     // Update title and legend colors
     chart.options.plugins.title.color = colors.text;
     chart.options.plugins.legend.labels.color = colors.text;
-
-    // Update axes colors
-    chart.options.scales.x.grid.color = colors.gridLines;
-    chart.options.scales.x.ticks.color = colors.axisLabels;
-    chart.options.scales.y.grid.color = colors.gridLines;
-    chart.options.scales.y.ticks.color = colors.axisLabels;
-    chart.options.scales.y.title.color = colors.text;
-
-    chart.update("quiet");
+    chart.update();
   }
 </script>
 
