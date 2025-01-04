@@ -11,11 +11,11 @@
               data-bs-placement="bottom"
               data-bs-title="{% if is_generating %}Stream is generating data. Click 'Stop Stream' to stop{% else %}Stream has stopped. Click 'Start Stream' to begin{% endif %}">
           {% if is_generating %}
-            <span class="spinner-grow spinner-grow-sm me-1 text-primary" role="status" aria-hidden="true"></span>
+            <span class="spinner-grow spinner-grow-sm text-primary" role="status" aria-hidden="true"></span>
           {% else %}
-            <span class="me-1 text-danger">●</span>
+            <span class="text-danger">●</span>
           {% endif %}
-          {% if is_generating %}Live{% else %}Stopped{% endif %}
+          <span class="d-none d-sm-inline ms-1">{% if is_generating %}Live{% else %}Stopped{% endif %}</span>
         </span>
       </div>
 

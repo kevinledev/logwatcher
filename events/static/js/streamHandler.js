@@ -26,6 +26,8 @@ class StreamHandler {
     const btn = document.getElementById('generateBtn');
     const liveIndicator = document.getElementById('liveIndicator');
     const cardElement = liveIndicator.querySelector('.card');
+    const statusIndicator = cardElement.querySelector('span:first-child');
+    const statusText = cardElement.querySelector('.d-none.d-sm-inline');
     
     // Update button
     btn.textContent = isGenerating ? 'Stop Stream' : 'Start Stream';
@@ -34,14 +36,28 @@ class StreamHandler {
     
     // Update indicator
     if (isGenerating) {
-      cardElement.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1 text-primary" role="status" aria-hidden="true"></span> Live';
-      cardElement.setAttribute('data-bs-title', "Stream is generating data. Click 'Stop Stream' to stop");
+      statusIndicator.className = 'spinner-grow spinner-grow-sm text-primary';
+      statusIndicator.setAttribute('role', 'status');
+      statusIndicator.setAttribute('aria-hidden', 'true');
+      statusIndicator.textContent = '';
     } else {
-      cardElement.innerHTML = '<span class="me-1 text-danger">●</span> Stopped';
-      cardElement.setAttribute('data-bs-title', "Stream has stopped. Click 'Start Stream' to begin");
+      statusIndicator.className = 'text-danger';
+      statusIndicator.removeAttribute('role');
+      statusIndicator.removeAttribute('aria-hidden');
+      statusIndicator.textContent = '●';
     }
     
+    // Update status text while maintaining responsive classes
+    statusText.textContent = isGenerating ? 'Live' : 'Stopped';
+    
     // Update tooltip
+    cardElement.setAttribute('data-bs-title', 
+      isGenerating 
+        ? "Stream is generating data. Click 'Stop Stream' to stop"
+        : "Stream has stopped. Click 'Start Stream' to begin"
+    );
+    
+    // Refresh tooltip instance
     const oldTooltip = bootstrap.Tooltip.getInstance(cardElement);
     if (oldTooltip) {
       oldTooltip.dispose();

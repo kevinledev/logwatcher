@@ -36,46 +36,49 @@
   <body>
     <div>
       {% include "dashboard/navbar.html" %}
-        <div class="container-fluid p-4">
-          <div class="row g-3 mb-4">
-            <div class="col-12 col-xl-6">
-              <div class="card h-full">
-                <div class="p-3 card-body">
-                  {% include "dashboard/charts/latency.html" %}
-                </div>
+      <div class="container-fluid p-2 p-sm-3 p-md-4">
+        <div class="row g-2 g-sm-3 mb-3">
+          <div class="col-12 col-lg-6">
+            <div class="card h-100">
+              <div class="card-body p-2 p-sm-3">
+                {% include "dashboard/charts/latency.html" %}
               </div>
-            </div>
-            <div class="col-12 col-xl-6">
-              <div class="card h-full">
-                <div class="p-3">
-                  {% include "dashboard/charts/error_rate.html" %}
-                </div>
-              </div>
-            </div>
-          <div class="col-12 col-xl-6">
-            <div class="card h-full">
-                <div class="p-3">
-                    {% include "dashboard/charts/throughput.html" %}
-                </div>
             </div>
           </div>
-          <div class="col-12 col-xl-6">
-            <div class="card h-full">
-                <div class="p-3">
-                    {% include "dashboard/charts/methods.html" %}
-                </div>
+          <div class="col-12 col-lg-6">
+            <div class="card h-100">
+              <div class="card-body p-2 p-sm-3">
+                {% include "dashboard/charts/error_rate.html" %}
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-6">
+            <div class="card h-100">
+              <div class="card-body p-2 p-sm-3">
+                {% include "dashboard/charts/throughput.html" %}
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-6">
+            <div class="card h-100">
+              <div class="card-body p-2 p-sm-3">
+                {% include "dashboard/charts/methods.html" %}
+              </div>
             </div>
           </div>
 
           <!-- Event Table -->
-          <div class="card"
-               id="event-table-container"
-               hx-get="{% url 'table_rows' %}" 
-               hx-trigger="load"
-               hx-swap="innerHTML">
+          <div class="col-12">
+            <div class="card" 
+                 id="event-table-container"
+                 hx-get="{% url 'table_rows' %}" 
+                 hx-trigger="load"
+                 hx-swap="innerHTML">
+            </div>
           </div>
         </div>
       </div>
-    {% include "dashboard/modal.html" %}
+      {% include "dashboard/modal.html" %}
+    </div>
   </body>
 </html>
