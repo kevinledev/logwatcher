@@ -60,16 +60,8 @@ For real-time data streaming, Server-Sent Events (SSE) was chosen over WebSocket
 ### Frontend Architecture
 The frontend prioritizes simplicity and performance by avoiding heavy frameworks. Instead of using solutions like Grafana or React, I built the dashboard using Chart.js and vanilla JavaScript. The charts and tables subscribe to a server-sent event stream `/stream` through a centralized StreamHandler `streamHandler.js`, which manages real-time data distribution and updates. HTMX handles dynamic content updates like table pagination with minimal JavaScript.
 
-### Data Visualization Challenges
-- Time Series Implementation
-  - Decided against specialized time-series DB
-  - Implemented custom time-based bucketing
-  - Sliding window effect for real-time data
-- Chart Requirements:
-  - Consistent time scale across charts
-  - Configurable granularity (5s minimum intervals)
-  - ~60 data points target per view
-  - Synchronized updates
+### Data Storage & Time Series Handling
+While a time-series database would be the conventional choice, I implemented the solution using PostgreSQL with custom time-based bucketing as a learning exercise. The system maintains consistent granularity across charts with configurable timeframes, targeting 60 data points per view for optimal real-time visualization performance.
 
 ### Performance Optimization
 - Data Buffering Strategy
