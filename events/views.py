@@ -122,14 +122,19 @@ def stop_generation(request):
 
 def get_historical_latency_data(request):
     interval_seconds = int(request.GET.get("interval", "60"))
-    range_minutes = int(request.GET.get('range', '15'))  # Now expecting direct minutes
+    range_minutes = int(request.GET.get('range', '15'))
+
+    print(f"\n=== Historical Latency Data Request ===")
+    print(f"Interval: {interval_seconds}s, Range: {range_minutes}m")
 
     now = timezone.now()
     start_time = now - timedelta(minutes=range_minutes)
 
     events = Event.objects.filter(timestamp__gte=start_time).order_by('timestamp')
+    print(f"Total events in range: {events.count()}")
 
-    if interval_seconds < 60:  # Sub-minute intervals (10s, 30s)
+    if interval_seconds < 60:  # Sub-minute intervals
+        print(f"Using sub-minute interval bucketing")
         aggregated_data = (
             events.annotate(
                 bucket=ExpressionWrapper(
@@ -146,7 +151,8 @@ def get_historical_latency_data(request):
             )
             .order_by('bucket')
         )
-    else:  # Minute-based intervals (1m, 5m)
+    else:  # Minute-based intervals
+        print(f"Using minute-based interval bucketing")
         minutes_fraction = interval_seconds // 60
         aggregated_data = (
             events.annotate(
@@ -163,12 +169,19 @@ def get_historical_latency_data(request):
             .order_by('bucket')
         )
 
+    data = list(aggregated_data)
+    print(f"Number of buckets after aggregation: {len(data)}")
+    if len(data) > 0:
+        print(f"First bucket: {data[0]}")
+        print(f"Last bucket: {data[-1]}")
+        print(f"Bucket values: {[d['bucket'] for d in data[:5]]}...")
+
     return JsonResponse({
         'data': [
             {
                 'x': entry['timestamp'].timestamp() * 1000,
                 'y': round(entry['avg_latency'], 2) if entry['avg_latency'] else 0
-            } for entry in aggregated_data
+            } for entry in data
         ]
     })
 

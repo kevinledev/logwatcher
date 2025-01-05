@@ -137,15 +137,16 @@
 
     function getIntervalForTimeframe(timeframeMinutes) {
         // Aim for ~60 data points
-        const intervalSeconds = Math.floor((timeframeMinutes * 60) / 60);
-        return Math.max(5, intervalSeconds); // Minimum 5 second intervals
+        const totalSeconds = timeframeMinutes * 60;
+        const targetPoints = 60;
+        const intervalSeconds = Math.max(Math.floor(totalSeconds / targetPoints), 5);
+        return intervalSeconds;
     }
 
     async function loadHistoricalLatencyData() {
         const selectedRadio = document.querySelector('input[name="latency-timeframe-group"]:checked');
         const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
         const intervalSeconds = getIntervalForTimeframe(rangeMinutes);
-
         fetch(`/api/historical-latency-data/?interval=${intervalSeconds}&range=${rangeMinutes}`)
             .then((response) => response.json())
             .then((data) => {
