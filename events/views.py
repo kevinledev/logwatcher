@@ -361,7 +361,6 @@ def get_historical_method_data(request):
         'POST': events.filter(method='POST').count(),
         'PUT': events.filter(method='PUT').count(),
         'DELETE': events.filter(method='DELETE').count(),
-        'OTHER': events.exclude(method__in=['GET', 'POST', 'PUT', 'DELETE']).count()
     }
     
     data = [
@@ -369,7 +368,6 @@ def get_historical_method_data(request):
         method_counts['POST'],
         method_counts['PUT'],
         method_counts['DELETE'],
-        method_counts['OTHER']
     ]
     
     return JsonResponse({'data': data})
