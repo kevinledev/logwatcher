@@ -137,8 +137,11 @@
 
     function getIntervalForTimeframe(timeframeMinutes) {
         // Aim for ~60 data points
-        const intervalSeconds = Math.floor((timeframeMinutes * 60) / 60);
-        return Math.max(5, intervalSeconds); // Minimum 5 second intervals
+        const totalSeconds = timeframeMinutes * 60;
+        const targetPoints = 60;
+        const intervalSeconds = Math.max(Math.floor(totalSeconds / targetPoints), 5);
+        console.log(`Calculated interval for ${timeframeMinutes}m: ${intervalSeconds}s`);
+        return intervalSeconds;
     }
 
     async function loadHistoricalLatencyData() {
