@@ -140,7 +140,6 @@
         const totalSeconds = timeframeMinutes * 60;
         const targetPoints = 60;
         const intervalSeconds = Math.max(Math.floor(totalSeconds / targetPoints), 5);
-        console.log(`Calculated interval for ${timeframeMinutes}m: ${intervalSeconds}s`);
         return intervalSeconds;
     }
 
@@ -148,13 +147,9 @@
         const selectedRadio = document.querySelector('input[name="latency-timeframe-group"]:checked');
         const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
         const intervalSeconds = getIntervalForTimeframe(rangeMinutes);
-        
-        console.log(`Loading historical data: range=${rangeMinutes}m, interval=${intervalSeconds}s`);
-        
         fetch(`/api/historical-latency-data/?interval=${intervalSeconds}&range=${rangeMinutes}`)
             .then((response) => response.json())
             .then((data) => {
-                console.log(`Received ${data.data.length} data points`);
                 latencyChart.data.datasets[0].data = data.data;
                 latencyChart.update();
             })
