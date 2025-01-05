@@ -44,11 +44,8 @@
     const endpoint = isGenerating ? '/stream/stop/' : '/stream/start/';
 
     try {
-      console.log(`[Toggle] Current state: ${isGenerating}, calling ${endpoint}`);
       const response = await fetch(endpoint);
       const data = await response.json();
-      console.log('[Toggle] Server response:', data);
-      
       isGenerating = !isGenerating;
       
       // Broadcast state change to other windows

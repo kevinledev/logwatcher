@@ -1,6 +1,5 @@
 class StreamHandler {
   constructor() {
-    console.log("[StreamHandler] Initializing...");
     this.subscribers = new Map();
     this.eventSource = null;
     
@@ -17,8 +16,6 @@ class StreamHandler {
         this.updateNavbarIndicator();
       }
     };
-    
-    console.log("[StreamHandler] Initialized successfully");
   }
 
   // Add method to update UI
@@ -66,8 +63,6 @@ class StreamHandler {
   }
 
   connect() {
-    console.log("[StreamHandler] Attempting to connect...");
-
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;
@@ -79,16 +74,9 @@ class StreamHandler {
       this.eventSource.onerror = (error) => {
         console.error("[StreamHandler] Connection error:", error);
         if (!isGenerating) {
-          console.log(
-            "[StreamHandler] Generation stopped, closing connection"
-          );
           this.disconnect();
           return;
         }
-        console.log(
-          "[StreamHandler] Connection state:",
-          this.eventSource.readyState
-        );
       };
 
       this.eventSource.addEventListener("api.request", async (e) => {
@@ -127,12 +115,10 @@ class StreamHandler {
   }
 
   async disconnect() {
-    console.log("[StreamHandler] Disconnecting...");
     if (this.eventSource) {
       try {
         this.eventSource.close();
         this.eventSource = null;
-        console.log("[StreamHandler] EventSource closed");
       } catch (error) {
         console.error("[StreamHandler] Error closing EventSource:", error);
       }
@@ -152,7 +138,6 @@ class StreamHandler {
   unsubscribe(id) {
     if (this.subscribers.has(id)) {
       this.subscribers.delete(id);
-      console.log("[StreamHandler] Unsubscribed:", id);
     }
   }
 
