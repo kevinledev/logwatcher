@@ -15,13 +15,15 @@ from django.db.models.functions import (
 from django.db.models import IntegerField
 from django.db.models.expressions import ExpressionWrapper
 from django.core.paginator import Paginator
-from asgiref.sync import sync_to_async
+from asgiref.sync import sync_to_async, async_to_sync
 from django.db import models
 import logging
 import markdown2
 
 # Global flag to control event generation
 is_generating = False
+generation_start_time = None
+auto_stop_task = None
 
 logger = logging.getLogger(__name__)
 
@@ -104,19 +106,61 @@ def table_rows(request):
     events = paginator.get_page(page_number)
     return render(request, "dashboard/table/base.html", {"events": events})
 
+async def stop_generation_after_delay():
+    """Background task to stop generation after 15 minutes"""
+    try:
+        await asyncio.sleep(15 * 60)  # 15 minutes
+        global is_generating
+        if is_generating:
+            logger.info("Auto-stopping generation after 15 minutes")
+            is_generating = False
+    except asyncio.CancelledError:
+        logger.info("Auto-stop task cancelled")
+
+async def async_start_generation():
+    """Async helper for starting generation"""
+    global is_generating, generation_start_time, auto_stop_task
+    
+    is_generating = True
+    generation_start_time = timezone.now()
+    
+    # Cancel any existing auto-stop task
+    if auto_stop_task and not auto_stop_task.done():
+        auto_stop_task.cancel()
+    
+    # Create new auto-stop task
+    loop = asyncio.get_event_loop()
+    auto_stop_task = loop.create_task(stop_generation_after_delay())
+    
+    return {"status": "started"}
+
 def start_generation(request):
     """API endpoint to start event generation"""
     global is_generating
     logger.info("Start generation requested")
-    is_generating = True
-    logger.info("Generation started")
-    return JsonResponse({"status": "started"})
+    
+    try:
+        # Convert async function to sync
+        result = async_to_sync(async_start_generation)()
+        logger.info("Generation started with 15-minute auto-stop")
+        return JsonResponse(result)
+    except Exception as e:
+        logger.error(f"Error starting generation: {str(e)}")
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 def stop_generation(request):
     """API endpoint to stop event generation"""
-    global is_generating
+    global is_generating, generation_start_time, auto_stop_task
     logger.info("Stop generation requested")
+    
     is_generating = False
+    generation_start_time = None
+    
+    # Cancel auto-stop task if it exists
+    if auto_stop_task and not auto_stop_task.done():
+        async_to_sync(auto_stop_task.cancel)()
+        auto_stop_task = None
+    
     logger.info("Generation stopped")
     return JsonResponse({"status": "stopped"})
 
