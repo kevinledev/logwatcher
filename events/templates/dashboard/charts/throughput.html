@@ -141,53 +141,12 @@
 
     function getIntervalForTimeframe(timeframeMinutes) {
         // Aim for ~60 data points
-        const intervalSeconds = Math.floor((timeframeMinutes * 60) / 60);
-        return Math.max(5, intervalSeconds); // Minimum 5 second intervals
+        const totalSeconds = timeframeMinutes * 60;
+        const targetPoints = 60;
+        const intervalSeconds = Math.max(Math.floor(totalSeconds / targetPoints), 5);
+        return intervalSeconds;
     }
-    
-    // Keep track of requests in the current window
-    let throughputRequestWindow = [];
-    let lastBucketTime = null;
-    
-    // Subscribe to stream updates
-    streamHandler.subscribe((data) => {
-        const selectedRadio = document.querySelector('input[name="throughput-timeframe-group"]:checked');
-        const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
-        const intervalSeconds = getIntervalForTimeframe(rangeMinutes);
-        
-        const now = data.time.getTime();
-        
-        // Add new request to window
-        throughputRequestWindow.push({
-            timestamp: now
-        });
 
-        // Remove requests outside the window
-        const windowDuration = throughputChart.options.scales.x.realtime.duration;
-        throughputRequestWindow = throughputRequestWindow.filter(req => now - req.timestamp <= windowDuration);
-
-        const lastDataPoint = throughputChart.data.datasets[0].data[throughputChart.data.datasets[0].data.length - 1];
-        
-        if (!lastDataPoint || (now - lastDataPoint.x) >= intervalSeconds * 1000) {
-            // Calculate the current interval's start time
-            const intervalStart = Math.floor(now / (intervalSeconds * 1000)) * (intervalSeconds * 1000);
-            
-            // Count only requests in this specific interval
-            const requestsInInterval = throughputRequestWindow.filter(req => 
-                req.timestamp >= intervalStart && 
-                req.timestamp < intervalStart + (intervalSeconds * 1000)
-            ).length;
-            
-            const requestsPerMinute = (requestsInInterval * 60) / intervalSeconds;
-            
-            throughputChart.data.datasets[0].data.push({
-                x: now,
-                y: requestsPerMinute
-            });
-
-            throughputChart.update();
-        }
-    });
     // Load historical data
     async function loadHistoricalThroughputData() {
         const selectedRadio = document.querySelector('input[name="throughput-timeframe-group"]:checked');
@@ -199,7 +158,6 @@
                 `/api/historical-throughput-data/?interval=${intervalSeconds}&range=${rangeMinutes}`
             );
             const data = await response.json();
-            
             throughputChart.data.datasets[0].data = data.data;
             throughputChart.update();
         } catch (error) {
@@ -216,6 +174,35 @@
             throughputChart.options.scales.x.realtime.duration = parseInt(e.target.value) * 60 * 1000;
             loadHistoricalThroughputData();
         });
+    });
+
+    let requestCount = 0;
+    let lastUpdateTime = Date.now();
+
+    // Subscribe to stream updates with buffering
+    streamHandler.subscribe((data) => {
+        const selectedRadio = document.querySelector('input[name="throughput-timeframe-group"]:checked');
+        const rangeMinutes = selectedRadio ? parseInt(selectedRadio.value) : 15;
+        const intervalSeconds = getIntervalForTimeframe(rangeMinutes);
+        
+        const now = data.time.getTime();
+        requestCount++;
+
+        const lastDataPoint = throughputChart.data.datasets[0].data[throughputChart.data.datasets[0].data.length - 1];
+        
+        if (!lastDataPoint || (now - lastDataPoint.x) >= intervalSeconds * 1000) {
+            const elapsedMinutes = (now - lastUpdateTime) / (1000 * 60);
+            const throughput = requestCount / elapsedMinutes;
+            
+            throughputChart.data.datasets[0].data.push({
+                x: now,
+                y: throughput
+            });
+            
+            throughputChart.update();
+            requestCount = 0;
+            lastUpdateTime = now;
+        }
     });
 
     document.addEventListener('generationStateChanged', function(e) {

@@ -158,9 +158,14 @@ def stop_generation(request):
     
     # Cancel auto-stop task if it exists
     if auto_stop_task and not auto_stop_task.done():
-        async_to_sync(auto_stop_task.cancel)()
-        auto_stop_task = None
+        try:
+            # We're in a sync context, so we need to get the event loop
+            loop = asyncio.get_event_loop()
+            loop.call_soon_threadsafe(auto_stop_task.cancel)
+        except Exception as e:
+            logger.error(f"Error cancelling auto-stop task: {str(e)}")
     
+    auto_stop_task = None
     logger.info("Generation stopped")
     return JsonResponse({"status": "stopped"})
 
